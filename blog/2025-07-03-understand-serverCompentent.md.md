@@ -1,6 +1,5 @@
 ---
 title: 结合 React 去理解和实践服务端组件
-title: 结合 React 去理解和实践服务端组件
 authors:
   - AsMuin
 date: 2025-07-03T16:00:00.000Z
