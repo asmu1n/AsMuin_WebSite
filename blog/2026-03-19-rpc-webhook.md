@@ -51,7 +51,7 @@ Webhook 通常被称为“反向 API”或“HTTP 回调”。它的核心设计
 
 ---
 
-## 三、 RPC 在现代全栈框架中的重塑新的开发范式
+## 三、RPC 在现代全栈框架中重塑新的开发范式
 
 过去，我们总认为 RPC 是后端微服务（Java/Go/C++）的专利，前端和后端只能通过 RESTful API (HTTP/JSON) 或 GraphQL 交互。
 
