@@ -1,7 +1,7 @@
 ---
 title: "Web Worker"
 authors: ["AsMuin"]
-tags: ["optimize"]
+tags: ["Optimize"]
 ---
 
 `Web Worker` 独立于页面的主线程，可以并行执行任务，不会阻塞主线程。
@@ -22,9 +22,9 @@ tags: ["optimize"]
 
 1. 通过`url`引入`JS`脚本文件实例化`Worker`对象，不能使用读取文件的方式引入。
 2. `Worker`线程本身也无法读取本地文件，只能通过网络请求获取资源。
-2. 引入`JS`脚本文件受到`同源策略`的限制。
-3. `Worker`与主线程不处于同一个上下文，无法直接读取主线程的`DOM`对象。
-4. `Worker`与主线程唯一的通信的方式是`postMessage`事件回调。仅支持传入可以被`结构化克隆`的数据类型。`Promise`、`Function`、`Error`等都无法传输。
+3. 引入`JS`脚本文件受到`同源策略`的限制。
+4. `Worker`与主线程不处于同一个上下文，无法直接读取主线程的`DOM`对象。
+5. `Worker`与主线程唯一的通信的方式是`postMessage`事件回调。仅支持传入可以被`结构化克隆`的数据类型。`Promise`、`Function`、`Error`等都无法传输。
 
 ## 示例
 
