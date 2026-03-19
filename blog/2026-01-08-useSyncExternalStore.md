@@ -151,21 +151,24 @@ function useStudent() {
 
 ## 核心注意事项
 
-1. `getSnapshot` 所返回的数据必须是不可突变的，即每次返回的数据快照必须是全新的，而不是修改自身属性。
+`getSnapshot` 返回的数据应保持不可突变；当 store 状态未变化时，应返回同一份快照引用；当状态发生变化时，再返回新的快照引用。
 
 > 在示例中每个 `updateAction` 都是通过创建全新的数据快照来实现的，而不是修改自身属性。
 >
 >```ts
+>// addFriend
 >         this.snapshot = {
 >            ...this.snapshot,
 >            friends: [...this.snapshot.friends, newFriend]
 >        };
->
+>// updateName
 >         this.snapshot = { ...this.snapshot, name };
+>// removeFriend
+>         const newFriends = this.snapshot.friends.filter(f => f !== student);
 >
 >         this.snapshot = {
 >            ...this.snapshot,
->            friends: [...this.snapshot.friends, newFriend]
+>            friends: newFriends
 >        };
 >```
 
