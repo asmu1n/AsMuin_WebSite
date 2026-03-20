@@ -8,6 +8,13 @@ export default [
     ...tseslint.configs.recommended,
     pluginReactConfig,
     {
+        ignores: [
+            'build/**',
+            'node_modules/**',
+            '.docusaurus/**'
+        ]
+    },
+    {
         languageOptions: {
             globals: globals.browser,
             sourceType: 'commonjs'
