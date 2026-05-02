@@ -86,7 +86,7 @@ export default function Profile() {
   return (
     <form action={async (formData) => {
       // 看起来像是在调用一个普通的本地异步函数！
-      const result = await updateUser(123, formData.get('name'))
+      const result = await updateUser(123, { name: formData.get('name') })
       console.log(result)
     }}>
       <input name="name" />

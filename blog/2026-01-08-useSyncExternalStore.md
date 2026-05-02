@@ -161,7 +161,7 @@ function useStudent() {
 >            ...this.snapshot,
 >            friends: [...this.snapshot.friends, newFriend]
 >        };
->// updateName
+>// setName
 >         this.snapshot = { ...this.snapshot, name };
 >// removeFriend
 >         const newFriends = this.snapshot.friends.filter(f => f !== student);
