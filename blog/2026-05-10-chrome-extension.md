@@ -12,7 +12,7 @@ tags:
 
 在 Chrome Manifest V3 (MV3) 标准下，由于严格的执行上下文隔离（`World Isolation`）机制，实现高可靠的原生 API 劫持面临一定的架构挑战。本文将结合开源项目 `Anywhere Debugger` 的实践，探讨如何利用 MV3 的现代化特性，构建一套**无 Background 依赖、纯原生、时序绝对可靠**的 API 劫持与跨环境通信架构。
 
-## 一、 核心挑战：执行上下文隔离 (World Isolation)
+## 一、 执行上下文隔离 (World Isolation)
 
 Chrome 扩展的内容脚本（`Content Scripts`）默认运行在 **`ISOLATED World（隔离环境）`** 中。该环境具有以下特征：
 
@@ -181,7 +181,7 @@ window.addEventListener('message', (event) => {
 });
 ```
 
-## 五、 架构总结
+## 五、 总结
 
 1. **时序可靠性**：利用 `world: "MAIN"` 与 `run_at: "document_start"`，从根本上消除了 DOM 注入带来的劫持空窗期，确保原生 API 在页面业务逻辑执行前已被接管。
 2. **最小权限原则**：摒弃 Background Service Worker。对于仅需 UI 触发页面响应的工具类扩展，使用 `chrome.tabs.sendMessage` 进行点对点通信，可显著降低扩展的常驻内存开销。
