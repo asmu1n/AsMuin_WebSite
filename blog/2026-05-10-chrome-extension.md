@@ -127,7 +127,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         type: '__MOCK_CMD__',
         requestId,
         ...message
-    }, '*');
+    }, location.origin);
     
     // 返回 true 保持 MessageChannel 开启，等待异步响应
     return true; 
@@ -163,7 +163,7 @@ Object.defineProperty(navigator, 'userAgent', {
 });
 
 window.addEventListener('message', (event) => {
-    // 严格安全校验：仅接收同源窗口且带有特定标识的消息
+    // 基础过滤：只能降低噪声，页面脚本仍可伪造；需配合 token/nonce 和命令白名单使用
     if (event.source !== window || event.data?.type !== '__MOCK_CMD__') return;
 
     const { cmd, payload, requestId } = event.data;
@@ -176,7 +176,7 @@ window.addEventListener('message', (event) => {
             type: '__MOCK_RESP__', 
             requestId, 
             result: { success: true, data: currentUA } 
-        }, '*');
+        }, location.origin);
     }
 });
 ```
