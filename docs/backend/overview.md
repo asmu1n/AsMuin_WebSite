@@ -7,7 +7,7 @@ sidebar_position: 1
 
 ## Express
 
-当前最流行的`Node.js`框架。,npm下载量遥遥领先。
+当前最流行的`Node.js`框架,npm下载量遥遥领先。
 特点:
 
 - 简单易用,`API` 设计相当简单明了,可以说是入门`Node.js`的首选框架。

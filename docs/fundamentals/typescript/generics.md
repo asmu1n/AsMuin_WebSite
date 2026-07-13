@@ -51,7 +51,7 @@ function returnObjectProperty<T>(obj:T):T{
 这段代码有**两处**错误
 
 1. `T`类型不一定存在`name`属性(`T`也有可能指代其他类型,它们可不一定有`name`属性)
-2. `obj,name` 类型不确定,一般来说不会是`Object`类型
+2. `obj.name` 类型不确定,一般来说不会是`Object`类型
 
 解决方案
 
@@ -59,7 +59,7 @@ function returnObjectProperty<T>(obj:T):T{
 interface ObjectWithName{
     name:string;
 }
-function returnObjectProperty<T extends ObjectWithName>(obj:T):T.name{
+function returnObjectProperty<T extends ObjectWithName>(obj:T):T['name']{
     return obj.name;
 }
 ```
@@ -107,7 +107,7 @@ type K3 = keyof { [x: string]: Person };  // string | number
 `keyof`和`泛型`结合使用
 
 ```typescript
-interface Todo = {
+interface Todo {
   id: number;
   text: string;
   done: boolean;

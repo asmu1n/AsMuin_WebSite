@@ -26,8 +26,11 @@ sidebar_position: 1
 
 const arrayNumber: number[] = [1, 2, 3, 4];
 // const greaterThan2: number = arrayNumber.find(num => num > 2) :number || undefined
-const greaterThan2: number = arrayNumber.find(num => num > 2) as number;( 使用`as` 断言为number类型)
-const greaterThan2: number = <number>arrayNumber.find(num => num > 2) (使用尖括号语法)
+// 使用 as 断言
+const greaterThan2: number = arrayNumber.find(num => num > 2) as number;
+
+// 使用尖括号语法（在 JSX 中不适用）
+const greaterThan2Alt: number = <number>arrayNumber.find(num => num > 2);
 ```
 
 ## 非空断言
@@ -63,7 +66,7 @@ function initialize() {
   x = 10;
 }
 
--------------------------------------------------------------
+// -------------------------------------------------------------
 
 let x!: number;
 initialize();
@@ -100,7 +103,7 @@ function move(dir: Direction) {
 move('up'); // ok
 move('right'); // ts(2345) Argument of type '"right"' is not assignable to parameter of type 'Direction'
 
----------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------
 
 interface Config {
     size: 'small' | 'big';
@@ -125,7 +128,7 @@ const config: Config = {
 const str = 'this is string'; // str: 'this is string'
   const num = 1; // num: 1
   const bool = true; // bool: true
-  -------------------------------------------------------------
+  // -------------------------------------------------------------
   let str = 'this is string'; // str: string
   let num = 1; // num: number
   let bool = true; // bool: boolean

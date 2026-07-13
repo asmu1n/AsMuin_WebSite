@@ -71,10 +71,10 @@ type ShowMe2 = Prettify<ComplexType>;
 ### 源代码
 
 ```typescript
-type LazyLimit = 'lazy' | 'eager' | 'default'| (string & {});
+type LazyLimit = 'lazy' | 'eager' | 'default' | (string & {});
 
 // no error
-const demo:LazyLimit = 'Crawford';
+const demo: LazyLimit = 'Crawford';
 ```
 
 ## 映射
@@ -86,25 +86,26 @@ const demo:LazyLimit = 'Crawford';
 ```typescript
 type MapType<T> = {
     [K in keyof T]: T[K];
-}
+};
 ```
 
 ### 用途
 
 ```typescript
 type MapTransformed<T> = {
-  readonly [K in keyof T as `get${Capitalize<string & K>}`]?: () => T[K];
-}
+    readonly [K in keyof T as `get${Capitalize<string & K>}`]?: () => T[K];
+};
 
 type AddProperty<T extends Record<string, object>, P> = {
-    [K in keyof T]:  readonly P & T[K] & readonly {
-        type: K
-    }
-} ;
+    [K in keyof T]: Readonly<P> &
+        T[K] & {
+            readonly type: K;
+        };
+};
 
 type InterfaceToUnion<T extends Record<string, object>> = {
-    [K in keyof T]:  T[K] & {
-        type: K
-    }
-}[keyof T]
+    [K in keyof T]: T[K] & {
+        type: K;
+    };
+}[keyof T];
 ```

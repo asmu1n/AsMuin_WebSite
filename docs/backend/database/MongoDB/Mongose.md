@@ -66,7 +66,7 @@ ID选择 | 选择单个(如果存在多个就选择第一个) | 选择多个
 ```ts
 //创建了一个新的 User文档
 const newUser = new User({
-    name: AsMuin,
+    name: "AsMuin",
     age: 18,
 })
 //将新的 User文档保存到集合中

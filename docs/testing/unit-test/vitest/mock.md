@@ -125,7 +125,6 @@ export function getData() {
 }
 
 // test/index.test.js
-import { getData } from '../src/index.js';
 
 describe('getData with vi.doMock', () => {
     beforeEach(() => {
@@ -193,7 +192,7 @@ test("renders search results", () => {
 
 *`mockReturnValue`的返回值能够再次调用`mockReturnValue`，也就是支持链式调用*
 
-*同时每次调用`mockReturnValue`都会覆盖上一次的值，在单元测试中*
+*同时每次调用`mockReturnValue`都会覆盖上一次的值，在单元测试中需注意调用顺序对返回值的影响*
 
 ## importActual
 
@@ -237,7 +236,7 @@ expect(mockFn.mock.calls).toEqual([['Bob']])
 ## mockReset
 
 > 官方原文：执行 `mockClear` 所做的事情，并将内部实现重置为原始函数。 这还会重置所有 "once" 实现。
-> 请注意，从 `vi.fn()` 重置 `mock` 会将实现设置为返回 `undefined` 的空函数。 从 `vi.fn(impl)` 重置 `mock` 会将会重置为 `impl`。
+> 请注意，从 `vi.fn()` 重置 `mock` 会将实现设置为返回 `undefined` 的空函数。 从 `vi.fn(impl)` 重置 `mock` 会重置为 `impl`。
 
 ```typescript
 const mockFn = vi.fn((name: string) => `Hello ${name}`)
