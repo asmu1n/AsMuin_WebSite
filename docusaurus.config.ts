@@ -28,7 +28,20 @@ const config: Config = {
         defaultLocale: 'zh-Hans',
         locales: ['zh-Hans']
     },
-    plugins: ['docusaurus-plugin-sass'],
+    plugins: [
+        'docusaurus-plugin-sass',
+        [
+            '@docusaurus/plugin-content-docs',
+            {
+                id: 'sawdust',
+                path: 'sawdust',
+                routeBasePath: 'sawdust',
+                sidebarPath: './sidebarsSawdust.ts',
+                editUrl:
+                    'https://github.com/AsMuin/AsMuin_WebSite/tree/main'
+            }
+        ]
+    ],
     presets: [
         [
             'classic',
@@ -83,6 +96,13 @@ const config: Config = {
                 },
                 { to: '/blog', label: '随记', position: 'left' },
                 {
+                    type: 'docSidebar',
+                    sidebarId: 'sawdustSidebar',
+                    docsPluginId: 'sawdust',
+                    position: 'left',
+                    label: '木屑'
+                },
+                {
                     href: 'https://github.com/AsMuin',
                     label: 'GitHub',
                     position: 'right'
@@ -102,6 +122,10 @@ const config: Config = {
                         {
                             label: '随记',
                             to: '/blog'
+                        },
+                        {
+                            label: '木屑',
+                            to: '/sawdust'
                         }
                     ]
                 },

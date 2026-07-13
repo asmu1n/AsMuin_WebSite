@@ -23,24 +23,20 @@ const FeatureList: FeatureItem[] = [
     //     )
     // },
     {
-        title: 'Web前端知识温故而知新',
+        title: '技术笔记与知识沉淀',
         Svg: require('@site/static/img/tree.png').default,
         link: '/docs/introduce',
         description: (
             <>
-                内容覆盖：计算机网络、前端三剑客基础知识、Web前端常用技术、现代前端工程链
+                内容覆盖：计算机网络、前后端开发、编程语言、工程化实践与软件测试
             </>
-            // <>
-            //     Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go ahead and
-            //     move your docs into the <code>docs</code> directory.
-            // </>
         )
     },
     {
         title: '个人随记',
         Svg: require('@site/static/img/cabin.png').default,
         link: '/blog',
-        description: <>记录前端学习历程、技术总结、面试经验、个人心得体会等。</>
+        description: <>记录技术探索历程、项目实践、学习心得与个人思考。</>
     }
 ];
 

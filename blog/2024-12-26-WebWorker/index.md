@@ -1,7 +1,7 @@
 ---
 title: "Web Worker"
 authors: ["AsMuin"]
-tags: ["Optimize"]
+tags: ["Performance"]
 ---
 
 `Web Worker` 独立于页面的主线程，可以并行执行任务，不会阻塞主线程。
