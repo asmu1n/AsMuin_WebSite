@@ -13,15 +13,11 @@ Vite:
 TypeScript:
     label: TypeScript
     permalink: /typescript
-    description: 关于Typescript的相关文章
+    description: 关于TypeScript的相关文章
 CSS:
     label: CSS
     permalink: /css
     description: 关于CSS的相关文章
-Fetch:
-    label: Fetch
-    permalink: /fetch
-    description: 涉及到网络请求、接口数据获取的相关文章
 Redux:
     label: Redux
     permalink: /redux
@@ -41,16 +37,28 @@ Database:
 Auth:
     label: 认证
     permalink: /auth
-    description: 关于Web认证鉴权的相关文章
-Optimize:
-    label: 优化处理
-    permalink: /optimize
+    description: 关于认证鉴权的相关文章
+Performance:
+    label: 性能优化
+    permalink: /performance
     description: 关于性能优化的相关文章
 Network:
     label: 网络
     permalink: /network
-    description: 关于网络的相关文章
-RuntimeEnv:
-    label: 运行时环境
-    permalink: /runtime-env
-    description: 关于运行时环境的相关文章
+    description: 关于网络与数据请求的相关文章
+Infrastructure:
+    label: 基础设施
+    permalink: /infrastructure
+    description: 关于运行时环境、部署与基础设施的相关文章
+Backend:
+    label: 后端
+    permalink: /backend
+    description: 关于后端开发的相关文章
+Architecture:
+    label: 架构
+    permalink: /architecture
+    description: 关于架构设计与系统设计的相关文章
+DevTools:
+    label: 开发工具
+    permalink: /devtools
+    description: 关于开发工具与效率提升的相关文章

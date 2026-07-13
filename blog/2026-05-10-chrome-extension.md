@@ -5,7 +5,7 @@ authors:
 date: 2026-05-10T12:00:00.000Z
 tags:
   - TypeScript
-  - RuntimeEnv
+  - Infrastructure
 ---
 
 在 Web 调试与自动化测试场景中，扩展程序经常需要对目标页面的原生 API（如 `navigator.geolocation`、`navigator.userAgent`）进行劫持与 Mock。

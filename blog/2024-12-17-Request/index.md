@@ -1,7 +1,7 @@
 ---
 title: "Axios封装(第二版)"
 authors: ["AsMuin"]
-tags: ["Fetch","TypeScript"]
+tags: ["Network","TypeScript"]
 ---
 `Axios`封装
 <!-- truncate -->

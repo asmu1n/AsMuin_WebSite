@@ -1,7 +1,7 @@
 ---
 title: "TypeScript实战应用"
 authors: ["AsMuin"]
-tags: ["TypeScript","Fetch"]
+tags: ["TypeScript","Network"]
 ---
 `TS`类型体操
 <!-- truncate -->
