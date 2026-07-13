@@ -62,3 +62,7 @@ DevTools:
     label: 开发工具
     permalink: /devtools
     description: 关于开发工具与效率提升的相关文章
+Go:
+    label: Go
+    permalink: /go
+    description: 关于Go语言的相关文章
