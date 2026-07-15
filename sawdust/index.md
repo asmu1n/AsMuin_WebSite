@@ -10,4 +10,5 @@ slug: /
 
 最近新增：
 
+- [Go context：它是信号，不是强制终止](./go-context)
 - [Go 里定义变量、零值思维与结构体几个小技巧](./go-variable-struct-tricks)
