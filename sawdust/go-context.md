@@ -3,7 +3,7 @@ title: Go context 所代表的语义
 sidebar_position: 3
 ---
 
-## 小结
+## 前言
 
 **`context` 的职责是传递取消信号、截止时间和请求范围的数据，而不是替业务代码决定"取消之后该返回什么结果"。**
 
@@ -169,29 +169,7 @@ func fetchFromES(ctx context.Context, query string) ([]Item, error) {
 
 这正是 `context` 的核心价值：**将"当前请求已无继续执行必要"这一生命周期信号沿调用链持续传播。**
 
-## 如果业务上需要支持"部分结果"
-
-那么应该显式建模为业务协议，而不是把它理解成 `context` 的默认行为。
-
-例如：
-
-```go
-type SearchResponse struct {
-    Items    []Item `json:"items"`
-    Partial  bool   `json:"partial"`
-    ErrorMsg string `json:"errorMsg,omitempty"`
-}
-```
-
-然后在聚合逻辑里明确约定：
-
-- 哪一部分失败还能返回
-- 哪一部分失败必须整体报错
-- `Partial=true` 时前端怎么展示
-
-这属于**业务容错与结果建模设计**，不是 `context` 本身的内建语义。
-
-## 实战建议
+## 总结
 
 - `context` 是**协作式取消机制**，不是抢占式终止
 - 它负责传递**取消信号、超时约束和请求范围数据**
@@ -199,7 +177,5 @@ type SearchResponse struct {
 - 回滚、清理、资源释放由**具体代码或具体库负责**
 - 在 HTTP 后端中，应优先从 `r.Context()` 开始向下传播
 - 调用外部资源时，应优先使用支持 `Context` 的 API
-
-一句话总结：
 
 **`context` 决定的是调用是否还应继续执行，但不决定取消后的业务收尾策略。**
