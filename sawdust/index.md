@@ -8,6 +8,7 @@ slug: /
 
 最近新增：
 
+- [前端渲染架构简记](/sawdust/frontend-rendering-architectures)
 - [Go 模板与 fmt 速记](/sawdust/go-template-fmt)
 - [Go 结构体 Tag](/sawdust/go-struct-tags)
 - [Go channel 关闭后，缓冲区里的数据会怎样](/sawdust/go-channel-close-buffer)
