@@ -6,6 +6,9 @@ const config: Config = {
     title: '三木树屋',
     tagline: '😉互联网的海洋广阔无边，感谢你在这个小小的地方驻足停留😉',
     favicon: 'img/favicon.ico',
+    markdown: {
+        mermaid: true
+    },
 
     // Set the production url of your site here
     url: 'https://docs.asmuin.top',
@@ -42,6 +45,7 @@ const config: Config = {
             }
         ]
     ],
+    themes: ['@docusaurus/theme-mermaid'],
     presets: [
         [
             'classic',
@@ -174,6 +178,12 @@ const config: Config = {
         prism: {
             theme: prismThemes.github,
             darkTheme: prismThemes.dracula
+        },
+        mermaid: {
+            theme: {
+                light: 'neutral',
+                dark: 'dark'
+            }
         }
     } satisfies Preset.ThemeConfig
 };
