@@ -8,6 +8,7 @@ slug: /
 
 最近新增：
 
+- [什么时候要开数据库事务](/sawdust/when-to-use-db-transactions)
 - [前端渲染架构简记](/sawdust/frontend-rendering-architectures)
 - [Go 模板与 fmt 速记](/sawdust/go-template-fmt)
 - [Go 结构体 Tag](/sawdust/go-struct-tags)
