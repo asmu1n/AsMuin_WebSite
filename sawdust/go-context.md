@@ -105,12 +105,22 @@ Go 里更常见、也更稳妥的默认做法其实是：
 假设有一个搜索接口：
 
 ```go
+// import "context" / "errors" / "encoding/json" / "net/http" …
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
     ctx := r.Context()
 
     result, err := SearchAll(ctx, r.URL.Query().Get("q"))
     if err != nil {
-        http.Error(w, err.Error(), http.StatusGatewayTimeout)
+        // 不要把所有错误都映射成 504：取消 / 超时 / 业务错误语义不同
+        if errors.Is(err, context.DeadlineExceeded) {
+            http.Error(w, err.Error(), http.StatusGatewayTimeout)
+            return
+        }
+        if errors.Is(err, context.Canceled) {
+            // 客户端已断开时，有时甚至不必再写响应
+            return
+        }
+        http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
 
@@ -118,10 +128,10 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-这里的 `r.Context()` 会在以下场景下被取消：
+这里的 `r.Context()` **常见**会在以下场景被取消：
 
 - 用户主动断开连接
-- 代理层提前超时
+- 到后端的连接被代理关闭（不一定等于“代理配置了超时”这一个原因）
 - 上游已经不再等待这次响应
 
 因此 `SearchAll` 内部应该继续向下传递 `ctx`：
@@ -168,6 +178,23 @@ func fetchFromES(ctx context.Context, query string) ([]Item, error) {
 - 正在进行的 HTTP / DB / RPC 请求如果支持 `Context`，也会尽快结束
 
 这正是 `context` 的核心价值：**将"当前请求已无继续执行必要"这一生命周期信号沿调用链持续传播。**
+
+## 取消信号如何向下走
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Handler
+    participant SearchAll
+    participant ES as fetchFromES
+
+    Client->>Handler: 请求 / 随后断开
+    Handler->>SearchAll: ctx = r.Context()
+    SearchAll->>ES: 带同一 ctx 的 HTTP
+    Note over Handler,ES: ctx.Done() 关闭
+    ES-->>SearchAll: 尽快返回错误
+    SearchAll-->>Handler: 返回 ctx.Err() 或包装错误
+```
 
 ## 总结
 

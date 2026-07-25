@@ -78,13 +78,13 @@ sidebar_position: 6
 如果只是拼一个错误字符串：
 
 ```go
-err := fmt.Errorf("read file failed: %v", err)
+return fmt.Errorf("read file failed: %v", err) // 仅拼接信息，unwrap 不一定保留
 ```
 
 如果是要**包装底层错误**，保留后续 `errors.Is` / `errors.As` 能力，就用 `%w`：
 
 ```go
-err := fmt.Errorf("读取配置失败: %w", err)
+return fmt.Errorf("读取配置失败: %w", err)
 ```
 
 注意：
@@ -125,4 +125,4 @@ fmt.Printf("当前进度: %.2f%%\n", progress*100)
 
 一句话总结：
 
-**模板主要解决渲染，`fmt` 主要解决格式化；而在 `fmt` 里，真正最常用的核心组合其实就是 `%v`、`%+v`、`%#v`、`%d`、`%s`、`%.2f` 和 `%w`。**
+**`fmt` 负责值到字符串的格式化；日常最高频的组合就是 `%v`、`%+v`、`%#v`、`%d`、`%s`、`%.2f` 和 `%w`。**（`text/template` / `html/template` 是另一套“用数据填充模板”的机制，不在本篇展开。）
