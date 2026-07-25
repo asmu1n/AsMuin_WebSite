@@ -30,6 +30,16 @@ export interface IRequestConfig extends AxiosRequestConfig {
 export interface IResponseParams<T = any, D = any> extends AxiosResponse<T, D> {
     config: InternalAxiosRequestConfig & IRequestConfig;
 }
+
+/** 业务失败可带 toasted，避免外层重复 toast */
+class RequestError extends Error {
+    toasted: boolean;
+    constructor(message: string, toasted = false) {
+        super(message);
+        this.toasted = toasted;
+    }
+}
+
 const axiosInstance = axios.create({
     baseURL: '/api'
 });
@@ -39,20 +49,17 @@ const noAuthRequestList = ['/user/login', '/user/register', '/song/list'];
 
 axiosInstance.interceptors.request.use(async (config: InternalAxiosRequestConfig & IRequestConfig) => {
     try {
-        if (noAuthRequestList.includes(config.url||'')) {
+        if (noAuthRequestList.includes(config.url || '')) {
             return config;
-        } else {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                console.error('请先登录');
-                // 权限认证失败的情况下
-                showMessage({ type: 'warning', message: '请先登录' });
-                return Promise.reject('请先登录');
-            } else {
-                config.headers.Authorization = token;
-                return config;
-            }
         }
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.error('请先登录');
+            showMessage({ type: 'warning', message: '请先登录' });
+            return Promise.reject(new RequestError('请先登录', true));
+        }
+        config.headers.Authorization = token;
+        return config;
     } catch (e: any) {
         console.error(e);
         showMessage({ type: 'error', message: e.message });
@@ -95,13 +102,7 @@ axiosInstance.interceptors.response.use(async (response: IResponseParams<IRespon
 ## 封装 Request 方法，导出给外部使用
 
 ```ts
-class RequestError extends Error {
-    toasted: boolean;
-    constructor(message: string, toasted = false) {
-        super(message);
-        this.toasted = toasted;
-    }
-}
+// RequestError 已在拦截器上方定义
 
 export async function Request<T = any>(requestConfig: IRequestConfig, extraConfig?: IRequestConfig): Promise<IResponse<T>> {
     try {
