@@ -15,7 +15,7 @@ tags: ["React"]
 
 ## Fiber
 
-`Fiber`在`React16`之后引入，其本质是`虚拟DOM`的改良，用于解决递归同步虚拟DOM阻塞所导致的性能问题．在后续的事件流程中，`React`通过事件源对象访问`DOM`从而获取`DOM`对应的`Fiber`节点，收集该节点路径上的同类事件从而模拟事件的冒泡和捕获。
+`Fiber`在`React 16`之后引入，是可中断的协调（reconciliation）架构：把工作拆成可暂停的单元，以解决旧版递归同步更新阻塞主线程的问题。在事件流程中，`React`通过事件源对象找到对应`DOM`的`Fiber`节点，沿路径收集同类事件处理函数，从而模拟冒泡和捕获。
 
 ## React合成事件
 
@@ -27,7 +27,19 @@ tags: ["React"]
 
 ![React事件注册](React事件注册.png)
 
-同时还有一点需要注意,我们所写的类似`onClick`等事件也不是所谓的原生事件,而是通过原生事件合成的`React事件`。类似`click`合成`onClick`,`blur`、`change`、`input`、`keydown`、`keyUp`合成为`onChange`
+同时还有一点需要注意：`onClick`、`onChange` 等并不是直接挂在目标节点上的原生监听，而是 React 的**合成事件**（底层仍来自原生事件）。
+
+常见对应关系（简化）：
+
+| React 合成事件 | 主要来源的原生事件（因控件类型略有差异） |
+| -------------- | ---------------------------------------- |
+| `onClick`      | `click`                                  |
+| `onChange`     | 文本类多为 `input`/`change`；部分控件行为与原生 `change` 不完全一致 |
+| `onBlur`       | `blur` / `focusout`                      |
+| `onKeyDown`    | `keydown`                                |
+| `onKeyUp`      | `keyup`                                  |
+
+注意：**`onBlur`、`onKeyDown`、`onKeyUp` 是独立的合成事件**，不会被“合成进”`onChange`。`onChange` 主要解决表单控件在不同浏览器下取值变化时机不一致的问题。
 
 ## React额外处理的原因
 

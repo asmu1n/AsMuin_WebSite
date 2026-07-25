@@ -11,7 +11,7 @@ tags: ["Performance"]
 
 首先需要明确的是`JS`是一个单线程语言, 这就意味着`JS`在执行的时候只能执行一个任务, 当执行一个任务的时候, 其他任务都需要等待。
 当然，有些操作是可以异步执行的，比如`setTimeout`、`ajax`、`Promise`等。这些操作往往都存在一个`挂起`状态,比如在等待网络请求响应的过程,主线程并不需要停滞等待, 而是可以去执行其他任务。等到网络请求响应后，会将任务推入任务队列中等待主线程去执行。
-虽然`JS`只支持单线程，但这并不意味这浏览器是单线程执行任务的。相反浏览器本身是多线程的，比如`GUI渲染线程`、`JS引擎线程`、`事件触发线程`、`定时器触发线程`、`异步http请求线程`等。
+虽然`JS`只支持单线程，但这并不意味着浏览器是单线程执行任务的。相反浏览器本身是多线程的，比如`GUI渲染线程`、`JS引擎线程`、`事件触发线程`、`定时器触发线程`、`异步http请求线程`等。
 如果主线程执行一个计算密集型任务，会导致其他任务无法执行。为了解决一些计算密集型任务在`JS`中会导致主线程阻塞，无法即时响应用户的交互，让网页看起来像是卡死的情况，`HTML5`中引入了`Web Worker`。
 
 ## Web Worker
@@ -20,11 +20,11 @@ tags: ["Performance"]
 
 ### 注意点
 
-1. 通过`url`引入`JS`脚本文件实例化`Worker`对象，不能使用读取文件的方式引入。
-2. `Worker`线程本身也无法读取本地文件，只能通过网络请求获取资源。
-3. 引入`JS`脚本文件受到`同源策略`的限制。
-4. `Worker`与主线程不处于同一个上下文，无法直接读取主线程的`DOM`对象。
-5. `Worker`与主线程唯一的通信的方式是`postMessage`事件回调。仅支持传入可以被`结构化克隆`的数据类型。`Promise`、`Function`、`Error`等都无法传输。
+1. 通过 URL 引入脚本实例化 `Worker`。现代打包工具推荐：`new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`。
+2. `Worker` 线程本身无法直接读取本地磁盘文件，只能通过网络请求或主线程传入的数据获取资源。
+3. 引入脚本通常受同源策略限制。
+4. `Worker` 与主线程不处于同一上下文，**无法直接访问主线程 DOM**。
+5. 与主线程通信的主通道是 `postMessage`（还可配合 `MessageChannel`、Transferable 对象等）。仅支持可被**结构化克隆**的数据类型；`Function`、部分 `Error` 等无法直接传输。
 
 ## 示例
 
@@ -54,24 +54,24 @@ function routePositionList(data) {
 //* 基于Web Worker通过postMessage事件回调通信的原理,包装在Promise里,按照异步操作思维响应并处理数据
 const worker = new Worker('./worker.js');
 
-function runTaskInWorker(worker:Worker,data:any) {
-return Promise((resolve,reject)=>{
-    function onMessage(e:MessageEvent) {
-        worker.removeEventListener('message',onMessage);
-        const {success,result} = e.data;
-        if(success){
-            resolve(result);
-        }else{
-            reject(result);
+function runTaskInWorker(worker: Worker, data: any) {
+    return new Promise((resolve, reject) => {
+        function onMessage(e: MessageEvent) {
+            worker.removeEventListener('message', onMessage);
+            const { success, result } = e.data;
+            if (success) {
+                resolve(result);
+            } else {
+                reject(result);
+            }
         }
-    }
-    worker.addEventListener('message',onMessage);
-    worker.postMessage(data);
-})
+        worker.addEventListener('message', onMessage);
+        worker.postMessage(data);
+    });
 }
 
 async function test() {
-    const testData = Array.from({length:10000})map((_,i)=>i);
+    const testData = Array.from({ length: 10000 }).map((_, i) => i);
     try {
         const result = await runTaskInWorker(worker,testData);
         console.log('Success', result);
