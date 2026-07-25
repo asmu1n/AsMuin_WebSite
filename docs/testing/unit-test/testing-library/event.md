@@ -10,7 +10,7 @@ sidebar_position: 2
 
 ```js
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import React from 'react';
 
 test('clicking button with fireEvent', () => {
@@ -30,7 +30,7 @@ test('clicking button with fireEvent', () => {
 ```js
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import React from 'react';
 
 test('clicking button with userEvent', async () => {

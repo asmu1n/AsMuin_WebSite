@@ -27,10 +27,11 @@ sidebar_position: 1
 const arrayNumber: number[] = [1, 2, 3, 4];
 // const greaterThan2: number = arrayNumber.find(num => num > 2) :number || undefined
 // 使用 as 断言
-const greaterThan2: number = arrayNumber.find(num => num > 2) as number;
+// find 可能返回 undefined，强行 as number 会关掉安全检查——示例仅示意断言语法
+const greaterThan2 = arrayNumber.find(num => num > 2) as number | undefined;
 
 // 使用尖括号语法（在 JSX 中不适用）
-const greaterThan2Alt: number = <number>arrayNumber.find(num => num > 2);
+const greaterThan2Alt = <number | undefined>arrayNumber.find(num => num > 2);
 ```
 
 ## 非空断言
@@ -300,17 +301,15 @@ type PersonType = {
 }
 ```
 
-两者的区别主要体现在以下方面：
+| | `interface` | `type` |
+| -- | ----------- | ------ |
+| 对象形状 | ✅ | ✅ |
+| 声明合并 | ✅ | ❌ |
+| 联合 / 元组 / 映射类型 | 弱 | ✅ 主力 |
 
-- `interface` 用来定义对象的形状，可以包含属性、方法、索引签名等。
-- `type` 用来定义类型别名，可以用来给一个类型起一个新的名字。
+个人习惯：
 
-- `interface` 用来定义对象的形状，可以包含属性、方法、索引签名等。
-- `type` 用来定义类型别名，可以用来给一个类型起一个新的名字。
+- `interface`：对象数据结构、可被扩展的协议
+- `type`：联合类型、工具类型、与其它类型的关系
 
-这里简单的说明一下作者的理解和用法：
-
-- `interface` 用来定义一个对象的数据结构类型
-- `type` 用来指明该类型与其他类型的关系 （譬如联合类型...泛型）
-
-*详情参照其他文档[interface vs type](/blog/2024/10/15/Interface_Type)*
+详情见随记：[Interface vs Type](/blog/2024/10/15/Interface_Type)

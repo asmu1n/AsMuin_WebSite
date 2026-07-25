@@ -21,7 +21,7 @@ WebPack大致可以分为几个比较主要的部分:
 - **Output**：指示Webpack在哪里输出打包后的文件，可以是文件系统，也可以是内存中。
 - **Loaders**：Webpack可以加载各种文件类型，比如图片、字体、CSS、JavaScript等，通过Loaders可以对这些文件进行预处理，比如将Sass编译成CSS，将TypeScript编译成JavaScript等。
 - **Plugins**：Webpack可以用Plugins来扩展其功能，比如打包优化、分离CSS、提供环境变量等。
-- **Mode**：Webpack有三个不同的模式，分别是development、production和none，分别对应开发环境、生产环境和不使用Webpack。
+- **Mode**：`development`（开发默认优化）、`production`（压缩与生产优化）、`none`（**不启用**上述两套默认优化，但**仍在使用 Webpack 打包**）。
 
 ### WebPack的构建流程
 
@@ -34,13 +34,13 @@ WebPack大致可以分为几个比较主要的部分:
 
 ## Vite
 
-Vite 高度依赖于ES Module，使用ESM的特性实现模块解析，按需加载。在开发环境下通过GoLang编写的ESBuild将代码构建成浏览器可识别的JavaScript代码。摆脱了WebPack通过Node使用JS去完成静态解析和代码构建的性能瓶颈。在生产环境下是通过Rollup去完成打包工作
+Vite 高度依赖浏览器原生 ES Module。开发期由 dev server **按需**转换浏览器请求到的模块；依赖预构建常用 esbuild。生产默认用 Rollup 做打包优化。它与 Webpack“先构建完整依赖图再提供服务”的开发模型不同。
 
-### Vite的构建流程
+### Vite 的开发流程（简化）
 
-1. 读取配置文件vite.config.js，解析出入口文件、输出文件、加载器、插件等配置。
-2. 启动一个开发服务器，监听文件变化，自动重新构建。
-3. 解析入口文件，递归地解析每个依赖文件，直到所有入口文件都被解析完毕。
-4. 对加载的模块进行编译，将其转换成浏览器可识别的JavaScript代码。
+1. 读取 `vite.config.js`。
+2. 启动开发服务器，监听文件变化。
+3. 浏览器按需请求模块；服务器拦截并即时转换后返回。
+4. HMR 尽量只替换受影响模块；边界失效时整页刷新。
 
-*Vite与WebPack的差异较大，在其他地方中有详细的介绍。[Webpack vs Vite](/blog/2024/10/4/Webpack_Vite)*
+更细的对比见随记：[Webpack vs Vite](/blog/2024/10/4/Webpack_Vite)。

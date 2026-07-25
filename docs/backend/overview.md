@@ -3,49 +3,67 @@ title: 服务器框架
 sidebar_position: 1
 ---
 
-得益于`Node.js`的出现,`JS`不仅仅局限于在浏览器中发光发热,借助`Node.js`提供的环境,能够在`JS`中编写服务器端代码,实现`JS`的跨平台开发。因此也出现了许多使用`JS`来编写服务端的框架。
+得益于 Node.js，JavaScript 可以编写服务端代码。Node 生态里常见框架包括 Express、Koa、Nest.js、Fastify 等。
 
 ## Express
 
-当前最流行的`Node.js`框架,npm下载量遥遥领先。
-特点:
+Express 是 Node 里历史最久、资料最多的 Web 框架之一（下载量长期靠前，但是否“当前最流行”会随时间变化；Nest 等在企业全栈场景也很常见）。
 
-- 简单易用,`API` 设计相当简单明了,可以说是入门`Node.js`的首选框架。
-- 社区活跃,有很多成熟的插件和扩展,可以满足大部分需求。
-- 拓展性强,加上上面提到`Express`的社区相当活跃,`Express`项目可以通过各类中间件去拓展功能,这也是`Express`的核心。
+特点：
+
+- API 简单，适合入门与快速搭服务
+- 中间件生态成熟
+- 通过 `use` 组合路由、解析、鉴权等能力
 
 ```js
 // serve.js
 import express from 'express';
-import testRouter from './routes/test';
+import testRouter from './routes/test.js';
 
 const app = express();
 
-//数据处理中间件
-app.use(express.json()); //解析JSON数据
-app.use(express.urlencoded({ extended: true })); //解析表单数据
-
-//路由中间件
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use('/test', testRouter);
 
-app.listen(3000,()=>{
+app.listen(3000, () => {
     console.log('服务器启动成功');
-})
+});
+```
 
+```js
+// routes/test.js
+import express from 'express';
 
-// test.js
 const testRouter = express.Router();
 
-testRouter.get('/', (request,response)=> {
-    response.json({data:'这是测试发送一条信息'})
-})
+testRouter.get('/', (req, res) => {
+    res.json({ data: '这是测试发送一条信息' });
+});
 
 export default testRouter;
 ```
 
-*上方的示例就能够实现一个简单的`GET`数据接口。不难看出`Express`通过使用`use`去拓展各类功能,包括但不限于路由处理,数据解析等。而且语法也是相当简单明了。*
+上面示例即可提供一个简单的 `GET /test` 接口。
 
-值得注意的是,`Express`在请求的响应过程中,通过一层层回调函数去完成请求的处理。这也是`Express`的核心。
-`response.json({data:'这是测试发送一条信息'})`即`Express`最终响应给客户端的数据。为了避免`Express`的回调地狱,我们也可以借助`async await`去以同步代码的写法完成异步处理。
+### 请求怎么穿过中间件
 
----未完待续
+```mermaid
+flowchart LR
+    Req[请求] --> JSON[express.json]
+    JSON --> Auth[鉴权中间件]
+    Auth --> Route[路由 handler]
+    Route --> Res[res.json / res.send]
+```
+
+Express 用中间件链处理请求：前面的中间件可改 `req`/`res`，调用 `next()` 交给后续；在 handler 里用 `res.json` 等结束响应。异步逻辑可用 `async/await`，并注意错误要传到错误处理中间件（或自行 `try/catch` 后返回）。
+
+更贴近项目的路由 / 鉴权示例见 [Express](./frameworks/Express)。
+
+## 本目录其它主题
+
+| 主题 | 说明 |
+| ---- | ---- |
+| [数据库](./database/overview) | 选型与 Mongo / 锁策略入口 |
+| [Express 实践](./frameworks/Express) | 路由、中间件、控制器摘录 |
+| [Next.js 概述](./nextjs/overview) | React 全栈框架简述 |

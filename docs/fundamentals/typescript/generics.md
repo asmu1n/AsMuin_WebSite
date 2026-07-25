@@ -30,12 +30,12 @@ function returnValue<T>(value:T):T{
 很多情况下,我们可以不用显式指明各个类型,编译器能够自动帮我们去推断
 
 ```typescript
-function returnMultValue<T,P>(value:T,value2:P):T{
-    return value + value2;
+// 无约束时 T + P 通常无法通过类型检查；需要约束可运算的类型
+function concatString<T extends string, P extends string>(a: T, b: P): string {
+    return a + b;
 }
 
-const result = returnMultValue('1',2)
-// '1' 指代T 即是string类型 2 指代P 即是number类型 ,最终返回值也是string类型
+const result = concatString('hello', 'world'); // string
 ```
 
 ## 泛型约束
