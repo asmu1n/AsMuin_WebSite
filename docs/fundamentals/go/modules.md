@@ -201,3 +201,12 @@ use (
 | workspace | 多本地模块协同开发 | `go.work` |
 
 日常最常用的三条命令：`go mod init` 初始化模块、`go mod tidy` 整理依赖、`go get` 添加/升级指定依赖。
+
+```mermaid
+flowchart LR
+    Init[go mod init] --> Code[编写 import]
+    Code --> Tidy[go mod tidy]
+    Tidy --> Sum[更新 go.sum]
+    Get[go get pkg@ver] --> Tidy
+    WS[go.work 本地多模块] --> Code
+```

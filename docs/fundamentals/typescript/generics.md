@@ -128,3 +128,53 @@ const text = prop(todo, "text"); // const text: string
 const done = prop(todo, "done"); // const done: boolean
 
 ```
+
+## 内置工具类型（Utility Types）
+
+泛型经常和工具类型一起用。常见：
+
+| 工具类型 | 作用 | 例子 |
+| --- | --- | --- |
+| `Partial<T>` | 所有属性可选 | 更新接口的 body |
+| `Required<T>` | 所有属性必填 | 补全默认值后的对象 |
+| `Readonly<T>` | 只读 | 配置冻结视图 |
+| `Pick<T, K>` | 挑字段 | 列表项只展示部分字段 |
+| `Omit<T, K>` | 去掉字段 | 去掉 `password` 再返回 |
+| `Record<K, V>` | 键值映射 | `Record<string, number>` |
+| `Exclude` / `Extract` | 从联合里剔除 / 抽出 | 收窄联合类型 |
+| `ReturnType<F>` | 函数返回类型 | 从实现反推类型 |
+| `Parameters<F>` | 参数元组类型 | 包装原函数 |
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+  password: string;
+}
+
+type PublicUser = Omit<User, 'password'>;
+type UserPatch = Partial<Pick<User, 'name' | 'password'>>;
+
+function updateUser(id: string, patch: UserPatch) {
+  // ...
+}
+```
+
+## 条件类型与 `infer`（点到为止）
+
+```typescript
+type IsString<T> = T extends string ? true : false;
+
+// 从 Promise 解出内部类型
+type AwaitedSimple<T> = T extends Promise<infer U> ? U : T;
+
+type A = AwaitedSimple<Promise<number>>; // number
+```
+
+`infer` 只在条件类型的 `extends` 子句里声明类型变量，用来「拆开」已有类型结构。日常业务更多用 Utility Types；库作者才会大量写条件类型。
+
+## 何时用泛型
+
+- 输入输出类型**联动**（`request<T>`、容器 `Box<T>`）  
+- 要在多种类型上复用同一套算法，又不愿写 `any`  
+- 不需要时别硬上：固定结构的对象直接 `interface` 更清晰
