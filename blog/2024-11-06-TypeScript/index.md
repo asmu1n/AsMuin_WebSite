@@ -1,14 +1,13 @@
 ---
-title: "TypeScript实战应用"
+title: "Axios 封装中的 TypeScript 实践"
 authors: ["AsMuin"]
 tags: ["TypeScript","Network"]
 ---
-`TS`类型体操
+用 axios 封装练习请求/响应泛型，不是「类型体操」专题。
 <!-- truncate -->
 ## 前言
 
-本文借助`axios`请求封装作为实战用例
-涉及内容: `TypeScript`、`axios`、`React`
+本文借助 `axios` 请求封装作为实战用例，涉及 `TypeScript`、`axios`、`React`。
 
 ## 核心代码
 
@@ -74,7 +73,7 @@ export default request;
 
 ```
 
-## axios类型刨析
+## axios 类型剖析
 
 `axios`涉及的`api`太多,我就聚焦在`核心代码`中涉及到的
 

@@ -24,40 +24,40 @@ tags: ["React","TypeScript"]
 
 ## 代码示例
 
-**首先确定我们的目的，实现一个元素在出现可视窗口内就显示`Loading加载UI`，当元素不在可视窗口内就隐藏内容。** 应用场景常见于下拉分页查询。
+**目标示例：** 哨兵进入视口时通知子组件（常见于无限滚动「快到底了」）。注意：`isVisible` 表示**是否可见**，不等于业务上的 `isLoading`（是否在请求中）。下面用 `isVisible` 注入，避免语义混淆。
 
-1. 补充`Props`：
+1. 补充 Props：
 
 ```tsx
 import { ComponentType, useEffect, useMemo, useRef, useState } from 'react';
 
-function ObserverHOC<P>(Component: ComponentType<P>) {
-    const WrappedComponent = (props: Omit<P, 'isLoading'>) => {
+type WithVisible = { isVisible?: boolean };
+
+function ObserverHOC<P extends WithVisible>(Component: ComponentType<P>) {
+    const WrappedComponent = (props: Omit<P, 'isVisible'>) => {
         const domRef = useRef<HTMLDivElement>(null);
         const [isVisible, setIsVisible] = useState(false);
-        const observer = useMemo(() => {
-            return new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        setIsVisible(true);
-                    } else {
-                        setIsVisible(false);
-                    }
-                });
-            });
-        }, []);
+        const observer = useMemo(
+            () =>
+                new IntersectionObserver(entries => {
+                    entries.forEach(entry => {
+                        setIsVisible(entry.isIntersecting);
+                    });
+                }),
+            []
+        );
         useEffect(() => {
             const dom = domRef.current;
-            if (dom) {
-                observer.observe(dom);
-            }
+            if (dom) observer.observe(dom);
             return () => {
-                if (dom) {
-                    observer.unobserve(dom);
-                }
+                observer.disconnect();
             };
         }, [observer]);
-       return <div ref={domRef}>{<Component {...(props as P & JSX.IntrinsicAttributes)} isLoading={isVisible} />}</div>;
+        return (
+            <div ref={domRef}>
+                <Component {...(props as P)} isVisible={isVisible} />
+            </div>
+        );
     };
     WrappedComponent.displayName = `ObserverHOC(${Component.displayName || Component.name || 'Component'})`;
     return WrappedComponent;
@@ -66,13 +66,7 @@ function ObserverHOC<P>(Component: ComponentType<P>) {
 export default ObserverHOC;
 ```
 
-这部分代码示例中，`ObserverHOC`通过`useRef`以及`IntersectionObserver`去判断组件元素是否进入了可视窗口内（`isVisible`）,从而去并将`isVisible`传递给子组件。
-
-```tsx
- const WrappedComponent = (props: Omit<P, 'isLoading'>) =>{..........}
-```
-
-则是约束我们包装后返回的新组件不再需要我们去传递`isLoading`了，因为`ObserverHOC`内部已经处理了。
+`Omit<P, 'isVisible'>` 表示包装后的组件**不必再手动传** `isVisible`，由 HOC 注入。子组件内部仍可把 `isVisible` 当成「触发下一页加载」的信号，另用本地 state 管真正的 `isLoading`。
 
 ![React-HOC-1.png](./React-HOC-1.png)
 
@@ -85,48 +79,33 @@ export default ObserverHOC;
 2. 控制`原有组件`的渲染(不改变`原有组件`的前提下)：
 
 ```tsx
-import { ComponentType, useEffect, useMemo, useRef, useState } from 'react';
-
-function ObserverHOC<P>(Component: ComponentType<P>) {
+function ObserverMountHOC<P extends object>(Component: ComponentType<P>) {
     const WrappedComponent = (props: P) => {
         const domRef = useRef<HTMLDivElement>(null);
         const [isVisible, setIsVisible] = useState(false);
-        const observer = useMemo(() => {
-            return new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        setIsVisible(true);
-                    } else {
-                        setIsVisible(false);
-                    }
-                });
-            });
-        }, []);
+        const observer = useMemo(() => new IntersectionObserver(entries => {
+            entries.forEach(entry => setIsVisible(entry.isIntersecting));
+        }), []);
         useEffect(() => {
             const dom = domRef.current;
-            if (dom) {
-                observer.observe(dom);
-            }
-            return () => {
-                if (dom) {
-                    observer.unobserve(dom);
-                }
-            };
+            if (dom) observer.observe(dom);
+            return () => observer.disconnect();
         }, [observer]);
-        return <div ref={domRef}>{isVisible && <Component {...(props as P & JSX.IntrinsicAttributes)} />}</div>;
+        return <div ref={domRef}>{isVisible && <Component {...props} />}</div>;
     };
-    WrappedComponent.displayName = `ObserverHOC(${Component.displayName || Component.name || 'Component'})`;
+    WrappedComponent.displayName = `ObserverMountHOC(${Component.displayName || Component.name || 'Component'})`;
     return WrappedComponent;
 }
-
-export default ObserverHOC;
-
 ```
 
-这个例子,`HOC`不对原有组件进行任何操作，只是在原有组件的基础上，通过`isVisible`去控制其渲染。
+这个例子 HOC 不改动子组件内部，只在 `isVisible` 为真时挂载子树（懒展示）。
 
 ![React-HOC-3.png](./React-HOC-3.png)
 
 ## 总结
 
-为了在使用`HOC`包装组件后依然能提供良好的`TS`推导，核心点就是`ComponentType<P>`泛型`P`接收原有组件类型，在返回的新组件中,对`Props`进行约束或者不改变。在`JSX`中使用类型断言去解决`props`的类型问题。
+- 用 `ComponentType<P>` 接住原组件 props，返回组件上用 `Omit` 去掉由 HOC 注入的字段  
+- 清理 `IntersectionObserver` 时优先 `disconnect()`  
+- 可见性 ≠ 加载中：命名分开，业务状态仍放在子组件或数据层  
+
+现代代码里横切逻辑也常用 Hook；HOC 仍适合「包一层 UI / 统一注入 props」的场景。

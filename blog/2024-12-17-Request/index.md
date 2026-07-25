@@ -7,7 +7,7 @@ tags: ["Network","TypeScript"]
 <!-- truncate -->
 ## 前言
 
-本文基于`Axios`进行二次封装,皆在提供一种符合直觉且能够在大部分场景上进行使用的封装方式。
+本文基于`Axios`进行二次封装,旨在提供一种符合直觉且能够在大部分场景上进行使用的封装方式。
 
 ## 第一步创建Axios实例,配置统一的拦截器
 
@@ -22,7 +22,7 @@ interface IResponse<T = any> {
 }
 
 export interface IQueryList<T> {
-    itemList: T;
+    itemList: T[]; // 列表项数组；若 T 本身已是数组类型，可再按业务调整
 }
 export interface IRequestConfig extends AxiosRequestConfig {
     toastError?: boolean;
@@ -74,48 +74,70 @@ axiosInstance.interceptors.response.use(async (response: IResponseParams<IRespon
             if (toastError) {
                 showMessage({ type: 'error', message: data.message });
             }
-            return Promise.reject(data.message);
+            // toasted: true，外层 Request 不再重复 toast
+            return Promise.reject(new RequestError(data.message, true));
         }
     } catch (e: any) {
         console.error(e);
-        return Promise.reject(e);
+        return Promise.reject(e instanceof Error ? e : new RequestError(String(e)));
     }
 });
 ```
 
-*关于拦截器的具体细节,大部分与之前保持一致[Axios+TypeScript](/blog/2024/11/06/TypeScript)*
+> `RequestError` 定义见下方 `Request` 方法一节。
 
-值得注意的是`IRequestConfig`是在原有的基础上上拓展一个`toastError`属性,在预想情况下向服务端发起请求,若服务端响应了数据但处理结果是失败将会弹出一个错误提示。
+*关于拦截器的具体细节,大部分与之前保持一致[Axios 封装中的 TypeScript 实践](/blog/2024/11/06/TypeScript)*
 
-但在部分场景下我们并不需要这个提示,尤其是涉及了高并发量的数据请求,一旦生成多个错误提示充斥整个页面,用户体验会非常糟糕。
+值得注意的是 `IRequestConfig` 在原有基础上拓展了 `toastError`：服务端返回了业务失败时默认弹错误提示。
 
-所以我们可以显式传递`toastError:false`来关闭错误提示。(仅限于服务端响应数据并且处理结果是失败的情况,如果是请求失败,则不受限制  ---比如网络异常等)
+高并发或批量请求场景下，多个 toast 会刷屏，可显式传 `toastError: false` 关闭（仅限业务失败；网络错误等仍可在外层处理）。
 
-## 封装Request方法,导出给外部使用✨✨✨
+## 封装 Request 方法，导出给外部使用
 
 ```ts
+class RequestError extends Error {
+    toasted: boolean;
+    constructor(message: string, toasted = false) {
+        super(message);
+        this.toasted = toasted;
+    }
+}
+
 export async function Request<T = any>(requestConfig: IRequestConfig, extraConfig?: IRequestConfig): Promise<IResponse<T>> {
     try {
         const Response = await axiosInstance.request<IResponse<T>>({ ...extraConfig, ...requestConfig });
         return Response.data;
-    } catch (e: any) {
-        // 某种原因请求发送失败 比如网络断开
-        console.error(e);
-        showMessage({ type: 'error', message: e.message });
-        return Promise.reject(e);
+    } catch (e: unknown) {
+        // 业务失败若已在拦截器 toast，这里不再弹；网络错误等再提示
+        if (e instanceof RequestError && e.toasted) {
+            return Promise.reject(e);
+        }
+        const message = e instanceof Error ? e.message : String(e);
+        showMessage({ type: 'error', message });
+        return Promise.reject(e instanceof Error ? e : new Error(message));
     }
 }
 ```
 
-`Request`方法接收两个参数,`requestConfig`和`extraConfig`,`extraConfig`先展开,再展开`requestConfig`。也就意味着`requestConfig`的优先级更高。
+拦截器业务失败处改为：`return Promise.reject(new RequestError(data.message, true));`
 
-`requestConfig`和`extraConfig`的类型都是`IRequestConfig`,按理说应该合并成同一个参数,别急,让我们继续往下看。
+`Request` 接收 `requestConfig` 与 `extraConfig`，先展开 `extraConfig` 再展开 `requestConfig`，因此 **`requestConfig` 优先级更高**。
 
 ```ts
 const RequestConstructor =
-    <T = any, RD = any>(config: IRequestConfig, requestDataProcessing?: IRequestDataProcessing<T, RD>) =>
+    <T = any, RD = any>(baseConfig: IRequestConfig, requestDataProcessing?: IRequestDataProcessing<T, RD>) =>
     <R>(requestParams: T, extraConfig?: IRequestConfig) => {
-        let requestParamsCopy = structuredClone(requestParams);
+        // 每次请求拷贝 baseConfig，禁止原地改共享 config（并发时会互相污染）
+        const config: IRequestConfig = { ...baseConfig, headers: { ...baseConfig.headers } };
+
+        // File / FormData 等无法 structuredClone 时，按场景浅拷贝或跳过 clone
+        let requestParamsCopy: T = requestParams;
+        try {
+            requestParamsCopy = structuredClone(requestParams);
+        } catch {
+            requestParamsCopy = requestParams;
+        }
+
         if (requestDataProcessing?.beforeRequest) {
             const beforeRequestResult = requestDataProcessing.beforeRequest(requestParamsCopy, extraConfig);
             if (beforeRequestResult) {
@@ -126,12 +148,11 @@ const RequestConstructor =
             config.transformResponse = [requestDataProcessing.afterResponse];
         }
         if (config.method === 'get' || config.method === 'GET' || !config.method) {
-            return Request<R>({ ...config, params: requestParamsCopy || requestParams }, extraConfig);
-        } else {
-            return Request<R>({ ...config, data: requestParamsCopy || requestParams }, extraConfig);
+            return Request<R>({ ...config, params: requestParamsCopy }, extraConfig);
         }
+        return Request<R>({ ...config, data: requestParamsCopy }, extraConfig);
     };
-    export default RequestConstructor;
+export default RequestConstructor;
 ```
 
 `RequestConstructor`才是我们最终默认导出的方法(`Request`方法的再次封装,设计用于常规场景,特殊情况下也可以使用具名导出的`Request`直接发送请求)。
@@ -238,14 +259,30 @@ const addSong = RequestConstructor<AddSongParams>(
                 message: '添加成功',
                 position: 'topEnd'
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            showMessage({
-                type: 'error',
-                message: error.message,
-                position: 'topEnd'
-            });
+            // 若拦截器已 toast，这里可只记日志；否则：
+            const message = error instanceof Error ? error.message : '请求失败';
+            showMessage({ type: 'error', message, position: 'topEnd' });
         }
     }
 
 ```
+
+## 小结
+
+```mermaid
+flowchart TD
+    A[业务调用 getSongList / addSong] --> B[RequestConstructor 拷贝 config]
+    B --> C[beforeRequest 可选改参]
+    C --> D[Request 合并 extraConfig]
+    D --> E[axios 拦截器]
+    E -->|业务 success| F[返回 data]
+    E -->|业务失败| G[toast + reject Error]
+    E -->|网络错误| H[外层 catch 再提示]
+```
+
+- **共享 `baseConfig` 不要原地写**，每次请求浅拷贝
+- **reject 统一用 `Error`**，方便 `e.message`
+- **toast 职责单一**，避免拦截器与业务 catch 各弹一次
+- 上传场景慎用 `structuredClone(File/FileList)`

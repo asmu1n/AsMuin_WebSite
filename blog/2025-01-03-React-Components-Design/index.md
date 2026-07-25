@@ -1,73 +1,78 @@
 ---
 title: "React 组件封装思路"
 authors: ["AsMuin"]
-tags: ["React","TypeScript"]
+tags: ["React", "TypeScript"]
 ---
-`React`组件封装以及`Hook`的综合运用
+
+`React` 组件封装以及 `Hook` 的综合运用
+
 <!-- truncate -->
+
 ## 前言
 
-`React`使用`JSX`编写`UI`组件,在`React`中,通过组件概念的封装,可以保证页面代码的复用性同时更好去维护,提高开发效率。
+React 用 JSX 描述 UI。通过组件封装可以提高复用与可维护性。常见手段包括：**Props / ref**、**Context**、**复合组件（Compound Components）**、以及后文会对比的 **HOC / Hook**。
 
-## 基于`Props`和`ref`去封装组件
+## 基于 Props 和 ref
 
-在我们的页面开发中这种封装思路应该是最常见的。
-父组件通过传入`Props`从而控制子组件的行为和表现。同时,子组件也可以借由父组件传入的`ref`将自己的部分内容暴露给父组件进行访问
+父组件通过 Props 控制子组件；需要命令式 API 时，用 `ref` + `useImperativeHandle` 暴露有限方法。
 
 ```tsx
 // 父组件
-import { useState, useRef } from'react';
-import ChildComponent from './ChildComponent';
+import { useState, useRef } from 'react';
+import ChildComponent, { type ChildHandle } from './ChildComponent';
 
-function parentComponent(){
-const [count,setCount] = useState(1);
-const childRef = useRef(null);
-function letChildSay(){
-    childRef.current.childSay();
-}
+function ParentComponent() {
+    const [count, setCount] = useState(1);
+    const childRef = useRef<ChildHandle>(null);
+
+    function letChildSay() {
+        childRef.current?.childSay();
+    }
+
     return (
-    <>
-    <button onClick={letChildSay}>childSay</button>
-    <ChildComponent ref={childRef} count={count} />
-    </>
-    )
+        <>
+            <button onClick={letChildSay}>childSay</button>
+            <ChildComponent ref={childRef} count={count} />
+        </>
+    );
 }
-
 
 // 子组件
-import { useRef,forwardRef,useImperativeHandle } from'react';
+import { forwardRef, useImperativeHandle } from 'react';
 
-function ChildComponent({count},ref){
-const childRef = useRef(null);
+export type ChildHandle = {
+    childSay: () => void;
+};
 
-useImperativeHandle(ref,()=>({
-    childSay(){
-        console.log('child say')
-    }
-}))
+const ChildComponent = forwardRef<ChildHandle, { count: number }>(function ChildComponent({ count }, ref) {
+    useImperativeHandle(ref, () => ({
+        childSay() {
+            console.log('child say');
+        }
+    }));
 
-return <div>{count}</div>
+    return <div>{count}</div>;
+});
 
-}
-
-export default forwardRef(ChildComponent);
+export default ChildComponent;
 ```
 
-但这样做有个弊端,我们的`Props`和`ref`是需要一级级传递并且需要自己去一级级去管理传递。
+局限：Props / ref **层层传递**时，动态嵌套会很难维护，于是需要 Context 或复合组件。
 
-面对动态嵌套组件,参数的传递变得十分困难。由此引出`Context`去帮助我们去解决这个痛点。
-
-## 基于`Context`
+## 基于 Context + 复合组件
 
 ```ts
 import { createContext, useContext } from 'react';
+
 interface IDrawerContext {
     drawerVisible: boolean;
     drawerToggle: () => void;
     drawerClose: () => void;
     drawerOpen: () => void;
 }
+
 const DrawerContext = createContext<IDrawerContext | null>(null);
+
 function useDrawerContext() {
     const context = useContext(DrawerContext);
     if (!context) {
@@ -75,16 +80,20 @@ function useDrawerContext() {
     }
     return context;
 }
+
 export { DrawerContext, useDrawerContext };
 ```
 
-我们在一个单独的文件中定义了一个`DrawerContext`和`useDrawerContext`方法。`useDrawerContext`是一个`hook`,它的作用是检测当前上下文是否存在`DrawerContext`,如果不存在则抛出一个错误。在`TS`项目中这个`hook`能够帮我们解决访问`Context`时`TS`类型推导存在`undefined`的问题。
+`useDrawerContext` 既做运行时约束，也消掉 TS 上的 `null`。
 
 ```tsx
 import useToggle from '@/Hooks/state/useToggle';
 import { useDrawerContext, DrawerContext } from '@/service/context/Drawer';
+
 function Drawer({ children }: { children: React.ReactNode }) {
-    const [drawerVisible, { toggle: drawerToggle, setDefault: drawerClose, setReverse: drawerOpen }] = useToggle<boolean, boolean>(false, true);
+    const [drawerVisible, { toggle: drawerToggle, setDefault: drawerClose, setReverse: drawerOpen }] =
+        useToggle<boolean, boolean>(false, true);
+
     return (
         <DrawerContext.Provider
             value={{
@@ -100,9 +109,11 @@ function Drawer({ children }: { children: React.ReactNode }) {
         </DrawerContext.Provider>
     );
 }
+
 Drawer.PageContent = function DrawerPageContent({ children }: { children: React.ReactNode }) {
     return <div className="drawer-content">{children}</div>;
 };
+
 Drawer.Content = function DrawerContent({ children }: { children: React.ReactNode }) {
     const { drawerToggle } = useDrawerContext();
     return (
@@ -112,39 +123,53 @@ Drawer.Content = function DrawerContent({ children }: { children: React.ReactNod
         </div>
     );
 };
+
 export default Drawer;
 ```
 
-这是一个典型的抽屉`UI`组件,`PageContent`和`Content`分别是主页面的内容和抽屉容器内容。我们将`Drawer`组件作为一个`Provider`组件,将`Drawer`组件内部的`state`和`action`暴露给子组件。
-
-主页面的内容和抽屉容器内容,也就是`PageContent`和`Content`组件中的`children`,它们作为`JSX.Elemnt`插入到相应的位置。在这些组件或者这些组件的后代组件,都能通过`useDrawerContext`方法访问到`Drawer`组件内部的`state`和`action`,控制抽屉的打开和关闭。
-
-值得注意的是,`Drawer`本身作为一个祖先组件提供`ContextProvider`,而`Drawer.PageContent`和`Drawer.Content`则作为`Drawer`的子组件也仅存在于`Drawer`的内部,它们只负责将相应的内容放置对应的位置进行渲染,并且能让它们的后代组件能够访问到`Context`。
+这是典型的**复合组件**：`Drawer` 提供 Provider；`PageContent` / `Content` 只负责槽位，后代可通过 `useDrawerContext` 开关抽屉，无需层层传 props。
 
 ### 样例
 
 ```tsx
-   <>
-            <MessageManager />
-            <Drawer>
-                <Drawer.PageContent>
-                    <Message></Message>
-                    <div className="h-screen bg-back p-2">
-                        <div className="flex h-[90%] pb-2">
-                            <Sidebar></Sidebar>
-                            <Suspense fallback={<div>Loading...</div>}>
-                                <Display>
-                                    <Navbar></Navbar>
-                                    <Outlet />
-                                </Display>
-                            </Suspense>
-                        </div>
-                        <Player></Player>
-                    </div>
-                </Drawer.PageContent>
-                <Drawer.Content>{isLogin && <UserInfo />}</Drawer.Content>
-            </Drawer>
-        </>
+<>
+    <MessageManager />
+    <Drawer>
+        <Drawer.PageContent>
+            <Message />
+            <div className="h-screen bg-back p-2">
+                {/* 主内容：Sidebar / Navbar / Outlet ... */}
+            </div>
+        </Drawer.PageContent>
+        <Drawer.Content>{isLogin && <UserInfo />}</Drawer.Content>
+    </Drawer>
+</>
 ```
 
-....未完待续
+## 怎么选封装方式
+
+| 方式 | 适合 | 注意 |
+| ---- | ---- | ---- |
+| 纯 Props | 结构浅、依赖明确 | 深层树会 prop drilling |
+| ref 命令式 API | 聚焦、打开弹层、播放器控制 | 暴露面要小 |
+| Context | 跨层共享状态/动作 | 更新粒度，避免无脑大 Context |
+| 复合组件 | 有固定槽位的 UI 套件（Tabs、Drawer） | 子组件应在 Provider 内使用 |
+| 自定义 Hook | 只复用逻辑、不包一层 UI | 不能单独改渲染结构 |
+| HOC | 横切增强（权限、埋点、可见性） | 类型与调试成本；现代更常优先 Hook |
+
+```mermaid
+flowchart TD
+    Need[需要复用什么?]
+    Need -->|只要逻辑| Hook[自定义 Hook]
+    Need -->|固定 UI 结构+槽位| CC[复合组件 + Context]
+    Need -->|横切增强且不改子树结构| HOC[HOC]
+    Need -->|父子直接协作| Props[Props / 少量 ref]
+```
+
+## 小结
+
+- 组件名用 **PascalCase**；`children` 类型是 `React.ReactNode`（不是 `JSX.Elemnt`）
+- 深层共享优先 **Context / 复合组件**，而不是无限透传
+- 逻辑复用优先 **Hook**；需要包一层渲染策略再考虑 HOC（另见 [React HOC](/blog/2025/02/27/React-HOC)）
+
+一句话：**Props 管配置，Context 管跨层协作，复合组件管槽位，Hook 管逻辑。**
