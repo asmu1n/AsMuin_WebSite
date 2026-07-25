@@ -11,7 +11,7 @@ slug: /
 - [Compose 编排 vs 生产镜像部署：环境变量怎么注入](/sawdust/compose-vs-prod-image-env)
 - [什么时候要开数据库事务](/sawdust/when-to-use-db-transactions)
 - [前端渲染架构简记](/sawdust/frontend-rendering-architectures)
-- [Go fmt 速记](/sawdust/go-template-fmt)
+- [Go fmt 与模板速记](/sawdust/go-template-fmt)
 - [Go 结构体 Tag](/sawdust/go-struct-tags)
 - [Go channel 关闭后，缓冲区里的数据会怎样](/sawdust/go-channel-close-buffer)
 - [Go context：它是信号，不是强制终止](/sawdust/go-context)
