@@ -340,4 +340,4 @@ sequenceDiagram
 
 ## 思维导图
 
-![双 Token 验证方案](./doubleToekn_auth.png)
+![双 Token 验证方案](./doubleToken_auth.png)
