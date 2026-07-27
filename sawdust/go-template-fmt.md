@@ -1,5 +1,5 @@
 ---
-title: Go fmt 速记
+title: Go fmt 与模板速记
 sidebar_position: 6
 ---
 
@@ -78,13 +78,13 @@ sidebar_position: 6
 如果只是拼一个错误字符串：
 
 ```go
-err := fmt.Errorf("read file failed: %v", err)
+return fmt.Errorf("read file failed: %v", err) // 仅拼接信息，unwrap 不一定保留
 ```
 
 如果是要**包装底层错误**，保留后续 `errors.Is` / `errors.As` 能力，就用 `%w`：
 
 ```go
-err := fmt.Errorf("读取配置失败: %w", err)
+return fmt.Errorf("读取配置失败: %w", err)
 ```
 
 注意：
@@ -114,6 +114,36 @@ progress := 0.87654
 fmt.Printf("当前进度: %.2f%%\n", progress*100)
 ```
 
+## 6. 和 `text/template` 的边界（极简）
+
+`fmt` 把**值**格式化成字符串；`text/template` / `html/template` 用**数据结构**填充模板再写到 `io.Writer`。
+
+```go
+import (
+	"os"
+	"text/template"
+)
+
+type User struct {
+	Name string
+	Age  int
+}
+
+tmpl := template.Must(template.New("u").Parse(`你好，{{.Name}}（{{.Age}}）
+{{range .Items}}- {{.}}
+{{end}}`))
+
+// html/template 会对 HTML 做转义，防 XSS；生成 HTML 优先用它
+_ = tmpl.Execute(os.Stdout, map[string]any{
+	"Name":  "AsMuin",
+	"Age":   18,
+	"Items": []string{"a", "b"},
+})
+```
+
+常用动作：`{{.Field}}`、`{{if}}`、`{{range}}`、`{{with}}`、`{{define}}/{{template}}`。  
+需要格式化某个字段时，可以在数据里先 `fmt.Sprintf`，或注册 `FuncMap`。
+
 ## 总结
 
 - 调试优先：`%v` / `%+v` / `%#v` / `%T`
@@ -122,7 +152,8 @@ fmt.Printf("当前进度: %.2f%%\n", progress*100)
 - 小数最常用：`%.2f`
 - 补零最常用：`%02d` / `%03d`
 - 错误包装用：`fmt.Errorf("...: %w", err)`
+- 结构化渲染用 `text/template`；HTML 用 `html/template`
 
 一句话总结：
 
-**模板主要解决渲染，`fmt` 主要解决格式化；而在 `fmt` 里，真正最常用的核心组合其实就是 `%v`、`%+v`、`%#v`、`%d`、`%s`、`%.2f` 和 `%w`。**
+**`fmt` 负责值到字符串；模板负责数据结构到 Writer。** `fmt` 日常核心组合仍是 `%v`、`%+v`、`%#v`、`%d`、`%s`、`%.2f` 和 `%w`。

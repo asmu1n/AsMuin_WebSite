@@ -8,18 +8,18 @@ tags: ["TypeScript","Redux"]
 <!-- truncate -->
 ## Redux简述
 
-`Redux`是一个全局状态管理工具,与`pinia`不同,它并不依托与某个框架绑定使用。当然很多基于`React`搭建的项目都使用`Redux`作为全局状态管理工具。本文涉及的示例也是基于`React`的。
+`Redux`是一个全局状态管理工具,与`pinia`不同,它并不依托于某个框架绑定使用。当然很多基于`React`搭建的项目都使用`Redux`作为全局状态管理工具。本文涉及的示例也是基于`React`的。
 `Redux`的特点：
 
 - 不可变更新,即更新数据的方式永远是重新赋一个全新的值,而不是直接修改旧值。
 - 通过所谓的`action`函数去`dispatch`我们配置的全局`store`，`store`里的`reducer`函数去更新数据(`action`和`reducer`存在绑定关系 ---Toolkit)。
 - 纯函数,即更新数据的函数必须是纯函数,即函数的返回值只依赖于函数的输入值,而不依赖于函数的外部状态。
-- 单向数据流,即数据的流向是单向的,只能从`action`流向`reducer`。
+- 单向数据流：UI `dispatch(action)` → `reducer` 计算新 state → `store` 通知订阅者 → UI 更新。
 
 *本文主要讲述Toolkit的实现模板,这也是`Redux`官方目前所推崇的配置方式*
 
 Tips⭐⭐:
-`Redux Toolkit`在`reducer`函数中使用`immer`库去让你可以通过直接修改的方式更新数据，而不是重新返回一个新值。但需要注意的是`immer`只是通过`proxy`去帮我们去做返回新值的操作，本质上`reducer`函数永远接受一个新值，而不是直接修改旧值。
+`Redux Toolkit`在`reducer`里用`immer`，让你可以用“看起来像直接改 state”的写法。但本质上 immer 通过 proxy **最终仍产出新的 state 引用**；真正写进 store 的是新状态，而不是在原地永久变异旧对象。
 
 ## Redux的构成
 
@@ -80,7 +80,7 @@ export const selectAllNotifications = (state: RootState) => state.notifications;
 
 - 默认导出我们的`Reducer`片段,这个`Reducer`片段将传入我们的根`store`并通过`state.notifications`访问。
 
-- 具名导出我们`Recducer`片段的`action`构造函数(`allNotificationsRead`),这些`action`构造函数接受参数返回一个`action`对象从而通过`dispatch`去触发数据操作。
+- 具名导出我们 `Reducer` 片段的 `action` 构造函数（`allNotificationsRead`），它们返回 `action` 对象，再通过 `dispatch` 触发更新。
 
 - 同时我们导出了一个`selector`函数(`selectAllNotifications`),通过`useSelector`触发并返回我们`Reducer`片段的当前`state`(*当前片段`state`位于`store.notifications`*)。
 
@@ -95,9 +95,9 @@ export default function NotificationsList() {
     const notifications = useAppSelector(selectAllNotifications);
     const users = useAppSelector(selectAllUsers);
     const dispatch = useAppDispatch();
-    useLayoutEffect(()=>{
-        dispatch(allNotificationsRead())
-    })
+    useLayoutEffect(() => {
+        dispatch(allNotificationsRead());
+    }, [dispatch]);
 }
 ```
 

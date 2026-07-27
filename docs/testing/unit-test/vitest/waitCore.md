@@ -58,7 +58,20 @@ test('Element render correctly', async () => {
 
 | 特性 | `waitFor` | `waitUntil` |
 |---|---|---|
-| 适用场景 | 当你需要等待某个**回调函数成功执行时** | 当你需要等待某个**回调函数返回真实值时** |
-| 行为 | 如果回调函数抛出错误或返回拒绝的承诺，它将继续等待，直到成功或超时 | 如果回调函数返回虚假值，它将继续等待，直到返回真实值或超时(报错的话直接不通过测试) |
+| 适用场景 | 等待某个**回调成功执行**（抛错则重试） | 等待回调返回 **truthy** 值 |
+| 行为 | 回调抛错或 Promise reject 会继续等，直到成功或超时 | 返回 falsy 则重试；**抛错会立刻失败** |
 | 选项 | `timeout`, `interval` | `timeout`, `interval` |
-| 返回值 | `void` | `Promise<T>` |
+| 返回值 | `void`（等待成功即可） | `Promise<T>`（得到 truthy 结果） |
+
+## 和 Testing Library 的 `waitFor` 别混
+
+| API | 从哪来 | 典型用途 |
+| --- | --- | --- |
+| `vi.waitFor` / `vi.waitUntil` | **Vitest** | 等任意条件（服务 ready、模块状态） |
+| `waitFor` from `@testing-library/react` | **Testing Library** | 等 DOM 断言通过（更常直接用 `findBy*`） |
+
+测 React 组件时优先：
+
+1. `screen.findBy*` 等节点出现  
+2. 复杂断言再用 Testing Library 的 `waitFor(() => expect(...))`  
+3. 与 DOM 无关的异步再用 `vi.waitFor`

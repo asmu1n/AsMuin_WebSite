@@ -1,20 +1,29 @@
 ---
-title: 结合 React 去理解和实践服务端组件
+title: 在 React + Nest.js 项目里做混合 SSR（不是 RSC）
 authors:
   - AsMuin
 date: 2025-07-03T16:00:00.000Z
 tags:
   - React
 ---
-为一个`React` + `Nest.js`的前后端分离项目，新增一个服务端渲染页面
+为一个 `React` + `Nest.js` 的前后端分离项目，针对特定路由增加服务端渲染（SSR + Hydration）。注意：本文讨论的是**传统 SSR 水合**，不是 React Server Components（RSC）。
 
 <!-- truncate -->
 
+### 先分清：SSR ≠ RSC
+
+| 概念 | 是什么 |
+| ---- | ------ |
+| **SSR** | 服务端把组件渲染成 HTML 字符串发回浏览器，客户端再 **hydrate** 挂上事件与状态 |
+| **RSC** | React 的服务端组件模型：服务端组件代码默认不进客户端包，通过 Server/Client 边界与 Flight 协议协作 |
+
+下文全程是 **SSR + Hydration** 的混合渲染改造，不要和 RSC 混为一谈。
+
 ### 从纯 `CSR` 到混合渲染
 
-在现代 Web 开发中，前后端分离的开发模式已经成为主流，其目的是在浏览器上实现更复杂的内容。
+在现代 Web 开发中，前后端分离已经成为主流，便于在浏览器上实现复杂交互。
 
-但正所谓天下合久必分，分久必合。在客户端中完全使用`JS`去控制页面的渲染确实能够帮助我们在页面上实现更精细、复杂的内容。但并未所有内容都需要我们使用`JS`去控制，尤其是一些数据展示的内容，它们更多是载入时获取一些数据然后进行显示而已，并不涉及一些复杂的逻辑。但纯`CSR`除了能让我们实现复杂的逻辑处理，同时也导致了页面一开始只是一个近乎空白的页面，需要后续`JS`去控制渲染，在加载性能和`SEO`有很大的弊端。
+但并非所有内容都需要在客户端用 JS 驱动。许多数据展示页只是“载入数据并展示”，纯 CSR 会让首屏几乎空白、依赖后续 JS 渲染，在加载性能和 SEO 上有明显短板。
 
 当我们的项目逐渐成熟，希望优化关键页面（如用户个人资料页、产品详情页）的加载性能和 `SEO` 时，是否必须推倒重来，迁移到 `Next.js` 或 `Remix` 这类一体化框架？
 
@@ -32,9 +41,26 @@ tags:
 
 将这份 `HTML` 返回给浏览器。
 
-`React` 的“水合”(`Hydration`)：浏览器收到这份由服务端预先生成的 ``HTML`` 后，会立即将其展示出来，用户可以第一时间看到内容。随后，当客户端的 `React` 脚本加载并执行时，它不会粗暴地重建整个 `DOM`，而是会进行一个名为“水合 (`Hydration`)” 的过程。它会智能地接管现有 `HTML`，为其附加事件监听器和状态，让静态页面“活过来”，变成一个功能完整的 `SPA`。
+`React` 的“水合”(`Hydration`)：浏览器先展示服务端 HTML，客户端 React 加载后**接管已有 DOM**，挂上事件与状态，让页面变成可交互的 SPA，而不是推倒重建。
 
-其他路由保持不变：除了 /user，应用的其他部分（如 /dashboard、/settings）仍然是纯粹的 `CSR` 模式，由前端 `React Router` 控制，后端仅提供数据接口。
+其他路由保持不变：除了 `/user`，如 `/dashboard`、`/settings` 仍可走纯 CSR，由 `React Router` 控制，后端只提供 API。
+
+```mermaid
+sequenceDiagram
+    participant B as 浏览器
+    participant N as Nest.js
+    participant R as React 服务端渲染
+    participant API as 内部服务/DB
+
+    B->>N: GET /user
+    N->>API: 取页面数据
+    API-->>N: user
+    N->>R: renderToString(UserPage, props)
+    R-->>N: HTML 片段
+    N-->>B: 完整 HTML + 初始数据脚本
+    B->>B: 展示内容
+    B->>B: 加载 JS 后 hydrateRoot 接管
+```
 
 ### 后端改造：让 `Nest.js` 具备渲染能力
 
@@ -57,15 +83,16 @@ npm install react react-dom
 // nestjs-project/src/ssr/ssr.controller.ts
 import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
-import *as fs from 'fs';
+import * as fs from 'fs';
 import * as path from 'path';
 
 // 导入 React 和 ReactDOMServer
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 
-// 导入你编译后的 React 组件（路径取决于你的项目结构）
-const UserPage = require('../../react-build/static/js/UserPage.js').default;
+// 注意：SSR 需要可在 Node 中执行的 server bundle（不要直接 require 仅面向浏览器的 chunk）
+// 下面路径仅为示意
+const UserPage = require('../../react-build/server/UserPage.js').default;
 
 // 假设你有一个 UserService 来获取数据
 import { UserService } from '../user/user.service';
@@ -97,8 +124,8 @@ export class SsrController {
       )
       .replace(
         '</body>',
-        // 将初始数据挂载到 window 对象，供客户端水合时使用
-        `<script>window.__INITIAL_DATA__ = ${JSON.stringify(user)};</script></body>`
+        // 将初始数据挂载到 window；生产环境务必做 HTML 安全序列化，避免 </script> 等 XSS
+        `<script>window.__INITIAL_DATA__ = ${JSON.stringify(user).replace(/</g, '\\u003c')};</script></body>`
       );
 
     // 步骤 5: 发送最终的完整 HTML 页面
@@ -144,19 +171,22 @@ bootstrap();
 
 // react-project/src/index.js
 import React from 'react';
-import { hydrateRoot } from 'react-dom/client';
-import App from './App'; // 你的主 App 组件
+import { createRoot, hydrateRoot } from 'react-dom/client';
+import App from './App';
 
 const container = document.getElementById('root');
 
-// 使用 hydrateRoot 代替 createRoot().render
-// 它能自动识别并接管服务端渲染的 HTML
-hydrateRoot(container, <App />);
+// 仅当容器里已有服务端 HTML 时才 hydrate；空容器应 createRoot，否则容易 hydration mismatch
+if (container.hasChildNodes()) {
+  hydrateRoot(container, <App />);
+} else {
+  createRoot(container).render(<App />);
+}
 ```
 
-**深入探讨：`hydrateRoot` 会影响其他 `CSR` 页面吗？**
+**深入探讨：能不能一律用 `hydrateRoot`？**
 
->不会。hydrateRoot 非常智能。当它发现容器 `(<div id="root">)` 中已有服务端渲染的 HTML 时，它会执行“水合”操作；当发现容器为空时（例如访问纯 CSR 页面），它的行为会和 createRoot().render 完全一致，从零开始在客户端渲染。因此，这是一个安全且向后兼容的改动。
+> **不能想当然。** `hydrateRoot` 假定 DOM 已与服务端渲染结果对齐。若容器为空（纯 CSR 首屏），正确做法是 `createRoot().render`。混用时按“是否已有 SSR HTML”分支，或保证所有入口都先产出可对齐的 HTML。
 
 #### 2.“同构组件”的设计
 

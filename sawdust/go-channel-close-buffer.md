@@ -163,14 +163,43 @@ for task := range p.tasks {
 
 也就是说，**channel 的关闭语义本身能保证缓冲区里的数据可被继续消费，但不能替应用层解决并发发送与关闭之间的竞态。**
 
+## 关闭后的状态机（接收侧）
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open
+    Open --> ClosedDraining: close(ch)\n缓冲仍有数据
+    ClosedDraining --> ClosedEmpty: 读空
+    Open --> ClosedEmpty: close(ch)\n缓冲本就空
+    ClosedDraining --> ClosedDraining: v, ok=true
+    ClosedEmpty --> ClosedEmpty: 零值, ok=false\nrange 结束
+```
+
+Worker Pool 优雅停机时序：
+
+```mermaid
+sequenceDiagram
+    participant Main
+    participant Tasks as tasks channel
+    participant W as worker
+
+    Main->>Tasks: close(tasks)
+    loop 排空缓冲
+        W->>Tasks: range 取出任务
+        W->>W: 执行 task()
+    end
+    W->>Main: wg.Done()
+    Main->>Main: wg.Wait() 返回
+```
+
 ## 注意事项
 
 - `close(ch)` 不会清空缓冲区
 - 已写入缓冲区的数据仍然会被继续接收
 - 缓冲区读空后，接收立即返回零值；`ok == false`
 - `for v := range ch` 会持续读到 channel 关闭且缓冲区排空为止
-- 向已关闭 channel 发送会 panic
-- 用 channel 做优雅停机时，要同时处理好"关闭"与"并发发送"之间的竞态
+- 向已关闭 channel 发送会 panic；对已关闭 channel **再次 close**、对 **nil channel close** 也会 panic
+- 只有 owner/sender 侧应负责 close；用 channel 做优雅停机时，要同时处理好“关闭”与“并发发送”的竞态
 
 一句话总结：
 

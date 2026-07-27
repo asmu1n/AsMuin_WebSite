@@ -16,9 +16,9 @@ tags: ["Auth","TypeScript"]
 ## 解决思路
 
 ### 使用`Refresh Token`
-首先是`JWT`一般过期时间都比较长的问题，可以通过缩短`Token`的过期时间来解决。但这又带来了一个新的问题，那就是`Token`过期后，用户需要重新登录。这就会导致用户体验非常差，用户需要重新登录，然后重新输入密码，重新输入验证码等等。这就会导致用户体验非常差，用户需要重新登录，然后重新输入密码，重新输入验证码等等。
+首先是`JWT`一般过期时间都比较长的问题，可以通过缩短`Token`的过期时间来解决。但这又带来了新问题：`Token`过期后用户需要频繁重新登录，体验很差。
 
-这时候我们可以使用两个`Token`去解决这个问题。一个有效期短的`Token`作为登录凭证，一个有效期长的`Token`作为刷新凭证。当用户登录成功后，服务端会返回两个`Token`，一个作为登录凭证，一个作为刷新凭证。当用户登录凭证过期后，服务端会返回一个新的登录凭证和一个新的刷新凭证。这样就可以解决`Token`过期后，用户需要重新登录的问题。
+这时候可以用两个`Token`解决：一个有效期短的`Access Token`作为登录凭证，一个有效期长的`Refresh Token`作为刷新凭证。登录成功后服务端返回两者；当 Access Token 过期时，客户端用 Refresh Token 换取新的 Access Token（可选是否同时轮转 Refresh Token）。下面代码示例采用「只刷新 Access Token、Refresh Token 保持不变直到登出或过期」的简化方案。
 
 这样即使真正的`验证Token`有效期短，也可以通过长时效的`Refresh Token`来无感刷新`验证Token`，无需用户重新登陆。而且由于真正的`验证Token`有效期短，大大缩短了使用非法获取的`Token`进行非法操作的窗口时间。
 
@@ -120,7 +120,7 @@ axiosInstance.interceptors.response.use(
 
 通过这些判断去分析这个请求是否在`刷新Token没有过期的情况下，没有验证Token或者验证Token过期的情况下导致响应失败`
 
-如何真是这样导致请求失败，我们将该请求标识为`重试请求`，同时重新获取`验证Token`(`refreshAccessToken`)并放到请求头上重新请求。
+如果真是这样导致请求失败，我们将该请求标识为`重试请求`，同时重新获取`验证Token`(`refreshAccessToken`)并放到请求头上重新请求。
 
 如果还是失败，那我们可以认为服务端出现了问题，或者该用户的信息出现异常导致了失败。不再重新尝试请求。
 
@@ -215,16 +215,16 @@ const logout = RequestHandler(async (req, res) => {
     }
 
     res.clearCookie('refresh_token');
-    const expiresAt = getJwtExpiry(refreshToken);
+    // JWT exp 通常是秒级时间戳；仅当 refresh token 尚未过期时才需要拉黑
+    const expiresAt = getJwtExpiry(refreshToken); // 建议返回毫秒时间戳
 
-    if (expiresAt && Date.now().valueOf() > expiresAt) {
+    if (expiresAt && Date.now() < expiresAt) {
         const parsedData = blackListInsertValidation.parse({
             token: refreshToken,
             expiresAt: new Date(expiresAt)
         });
 
         await db.insert(blackList).values(parsedData);
-
     }
 
     return res.json(responseBody(true, '退出成功'));
@@ -233,7 +233,7 @@ const logout = RequestHandler(async (req, res) => {
 
 常规的登录注册，只不过`登录`需要生成两个 `token` 一个通过`cookie`回传给客户端，另一个直接通过`json`数据返回，由客户端去处理存储。
 
-`登出`操作先清除`refresh_token`，再去获取`token`过期时间去判断是否需要加入黑名单；
+`登出`操作先清除`refresh_token` cookie，再把**尚未过期**的 refresh token 写入黑名单——若 token 已过期，黑名单没有意义；若未过期却不拉黑，登出后仍可被拿去换新的 access token。
 
 ```ts
 // 用户身份验证中间件
@@ -312,6 +312,32 @@ const refreshToken = RequestHandler(async (req, res) => {
 `refreshToken` 就是通过验证后的`刷新Token`拿到信息去检索该用户，使用用户数据去重新生成一个新`Token` 
 
 
+## 流程示意
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant S as 服务端
+    participant BL as 黑名单
+
+    C->>S: 登录
+    S-->>C: Access Token + Set-Cookie(Refresh Token)
+
+    C->>S: 业务请求 + Authorization Bearer Access
+    S-->>C: 200 / 401(过期)
+
+    alt Access 过期
+        C->>S: 刷新接口（Cookie 带 Refresh）
+        S->>BL: 检查是否在黑名单
+        S-->>C: 新的 Access Token
+        C->>S: 重试原请求
+    end
+
+    C->>S: 登出
+    S->>BL: 拉黑未过期的 Refresh Token
+    S-->>C: 清除 Cookie
+```
+
 ## 思维导图
 
-![双toekn验证方案](./doubleToekn_auth.png)
+![双 Token 验证方案](./doubleToken_auth.png)

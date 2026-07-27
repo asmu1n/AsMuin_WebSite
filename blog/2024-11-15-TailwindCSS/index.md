@@ -4,70 +4,94 @@ authors: ["AsMuin"]
 tags: ["CSS","TailwindCSS"]
 ---
 
+`Tailwindcss` 使用有感
 
-`Tailwindcss`使用有感
 <!-- truncate -->
 
-## TailwindCSS简述
+## TailwindCSS 简述
 
-之前的文章也提到过`TailwindCSS`这个`CSS`方案[CSS样式隔离方案](/blog/2024/10/24/CSS_scheme)
-最近都在用这个来编写`CSS`，所以简单总结一下使用体验。
+之前的文章也提到过这个 CSS 方案：[CSS 样式隔离方案](/blog/2024/10/24/CSS_scheme)。最近一直在用，简单记一下体验。
 
-大部分情况下,`Tailwind`就是一个`PostCSS`插件，官方建议仅使用`PostCSS`作为预处理器，其他诸如`Sass`或者`Less`等预处理器最好不要混用。（当然也可以使用，只是配置起来比较麻烦,而且使用`Tailwind`后其实并不需要编写很多自定义类`CSS`所以这些预处理器的作用也很有限，除非你是项目临时加入这么一个`CSS`方案---......一般也遇不到这种情况）
+多数情况下 Tailwind 以 **PostCSS 插件** 形式接入。官方更推荐工具链围绕 Tailwind 本身，不必再叠一层 Sass/Less；混用可以，但收益有限，配置也更绕。
 
-`Tailwind`最大的特点就是我们无需为一个个元素去自定义类，去编写定制`CSS`。`Tailwind`提供了大量的`原子类`，让我们像搭积木一样去搭建我们的页面。
-当然，`Tailwind`也提供了一些自定义类的功能，让我们可以自定义我们的类。同时允许我们去对`原子类`的属性进行修改或者拓展
+最大特点：不必先为每个元素起类名再写一套 CSS，而是用大量**原子类**像搭积木一样拼样式。同时可以通过 `theme.extend` 扩展色板、间距等设计 token。
 
 ```js
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      colors:{
-        lightBlue:'#04A5FF',
-        lightGray:'#6e6e6e'
+      colors: {
+        lightBlue: '#04A5FF',
+        lightGray: '#6e6e6e'
       }
-    },
+    }
   },
-  plugins: [],
+  plugins: []
 };
 ```
 
-### 存在的问题及解决的思路
+## 存在的问题及思路
 
-这样的设计理念确实与我们以往编写定制类的去搭建网页的方式有很大的不同。大量使用`原子类`副作用就是在我们模板标签上存在大量类名, 这对我们的代码可读性和维护性都有很大的影响。以及写法类似编写内联样式，样式复用问题。
-这些官方也都有提到，所以官方也说明`Tailwind`更适用与渐进式框架,比如`Reac`，`Vue`。将我们的应用程序拆分成多个组件，通过组件化复用去抽离我们的样式。除此之外,`Tailwind`里允许我们去自定义声明类。
+原子类带来的副作用是：模板上类名很长，可读性/维护性压力变大，也像在写「内联样式」，复用要另想办法。
+
+官方路径主要是：
+
+1. **组件化**：React / Vue 等把重复 UI 抽成组件，样式跟着组件走  
+2. **`@layer components` + `@apply`**：沉淀真正共享的模式类  
 
 ```css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer base {
-    * {
-        word-break: break-all;
-    }
-    .base-bg {
-        @apply rounded-lg bg-[#f4f7f7];
-    }
-    .gray-text {
-        @apply text-xs text-[#6e6e6e];
-    }
+  * {
+    word-break: break-all;
+  }
 }
+
 @layer components {
-    .class-bg {
-        background-image: url('/src/assets/img/底纹.png'), linear-gradient(0deg, #f9fdff, #d9edff);
-        background-position: top 0px right 0px;
-        background-repeat: no-repeat;
-    }
+  /* 适合跨页面复用的「模式」类，而不是某个页面私有的一坨样式 */
+  .card-panel {
+    @apply rounded-lg bg-[#f4f7f7] p-4 shadow-sm;
+  }
+  .muted-text {
+    @apply text-xs text-[#6e6e6e];
+  }
+  .class-bg {
+    background-image: url('/src/assets/img/pattern.png'), linear-gradient(0deg, #f9fdff, #d9edff);
+    background-position: top right;
+    background-repeat: no-repeat;
+  }
 }
 ```
 
-**必须要注意的是这些自定义类是全局的，请不要将它作为定制类去编写**
+**注意：** `@layer` 里声明的类仍是**全局**的。
+
+- 适合：按钮、卡片、表单行等**可复用模式**
+- 不适合：把某一页私有布局全塞进全局 CSS  
+
+页面私有样式优先放在组件的 `className` 组合里，或 CSS Modules，而不是无限往全局 layer 堆。
+
+## 怎么和设计协作
+
+把 Tailwind 当**设计 token 的执行器**比当「CSS 替代品」更准确。
+
+若团队（尤其设计）维护一份清晰的色板 / 字号 / 间距表，并写进 `theme.extend`，开发会顺很多——积木已经分类好，按说明书搭即可。
+
+| 做法 | 适合 |
+| ---- | ---- |
+| 纯原子类堆在 JSX | 快速原型、局部样式 |
+| 组件抽离 + 原子类 | 中大型业务 UI |
+| `@apply` 组件类 | 少数稳定模式，避免滥用 |
+| 主题色运行时切换 | 配合 CSS 变量（见[自定义主题色](/blog/2025/09/19/customTheme) 随记） |
 
 ## 个人感想
 
-`Tailwind`更多是作为一个工具，请不要把它作为`CSS`的替代品。
-正如我们前面所提到的一样，`Tailwind`给我们一种搭积木的开发体验，但面对复杂页面，同时需要高度复现设计稿内容的情况下，有一个由整个项目团队（尤其是设计人员）维护的`Tailwind`配置表或者配置项对于开发效率的提升是非常大的。(打个比喻把积木都分类好了，我们只需要根据说明书去搭积木就行了)
+- Tailwind 提高的是**表达样式的速度**，不自动等于设计系统  
+- 复杂视觉稿仍需要 token 与组件边界，否则类名会失控  
+- 和 CSS Modules / Scoped 不是谁取代谁：隔离诉求强时可以混用  
 
-...未完待续
+一句话：**用原子类写得快，用组件和 token 写得稳。**

@@ -43,7 +43,7 @@ app.listen(port, () => {
 中间件的概念比较抽象,我们可以简单理解为一个处理请求的函数,它可以在请求到达路由之前对请求进行处理,也可以在响应发送给客户端之前对响应进行处理。
 
 - 比如我们想要获取`json`格式的请求数据,就可以使用`app.use(express.json())`来解析请求数据。
-- 或者我们需要解析`form-data-urlencoded`格式的数据,就可以使用`app.use(express.urlencoded({extended: true}))`来解析请求数据。
+- 或者需要解析 `application/x-www-form-urlencoded` 表单数据，可用 `app.use(express.urlencoded({ extended: true }))`。注意：**`multipart/form-data`（文件上传）需要 multer 等中间件**，不是 `urlencoded` 负责的。
 
 - 项目往往包含很多个接口,接口之间也存在类别关系,比如跟用户相关的,跟某类实体相关的,借助路由的概念,将不同的接口进行分类,可以使项目代码结构更加清晰。 ---通过`use(routerPath,router) 我们将某个外部定义的路由挂载到当前服务实例上。`
 
@@ -93,6 +93,10 @@ function userAuth(req: Request, res: Response, next: NextFunction) {
     }
     try {
         const token_decode: any = verifyToken(authorization);
+        // 鉴权结果挂到 req 上更稳妥（GET 常无 body）；下面为历史示例写法
+        (req as any).userId = token_decode.id;
+        // 若后续 handler 仍读 req.body.userId，也可写入 body，但不要和业务 body 字段混用
+        req.body = req.body || {};
         req.body.userId = token_decode.id;
         next();
     } catch (e: any) {
@@ -103,8 +107,9 @@ function userAuth(req: Request, res: Response, next: NextFunction) {
 export default userAuth;
 ```
 
-- `verifyToken`是一个解析`Token`的函数,并不在本文的讨论范围。
-- `apiResponse`是一个封装响应数据的函数,就是`res.json(...)`的二次封装,仅用于简单便捷地生成统一结构的响应数据结构。
+- `verifyToken` 是解析 Token 的函数，不在本文展开。
+- `apiResponse` 是对 `res.json(...)` 的薄封装，统一响应结构。
+- 推荐长期写法是 `req.user = payload`，而不是往 `req.body` 塞身份信息。
 
 ```ts
 const apiResponse =
@@ -177,5 +182,5 @@ const userInfo: controllerAction = async (req, res) => {
 };
 ```
 
-这里仅截取`userInfo`,首先在`res.body`中获取`userId`, `User`是一个`mongoose`模型,涉及到数据库驱动工具,这不是本文的重心,它在这里的作用就是根据`userId`从数据库里找到对应的数据信息。
+这里仅截取 `userInfo`：首先在 **`req.body`**（或更推荐的 `req.user`）中获取 `userId`。`User` 是 Mongoose 模型，数据库细节不在本文展开；这里按 `userId` 查库并返回用户信息。
 获取到需要的信息后,`res.json`发送给客户端,如果出现了错误,也会发送数据, 但是`success`为`false`。

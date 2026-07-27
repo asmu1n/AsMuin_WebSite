@@ -1,14 +1,13 @@
 ---
-title: "TypeScript实战应用"
+title: "Axios 封装中的 TypeScript 实践"
 authors: ["AsMuin"]
 tags: ["TypeScript","Network"]
 ---
-`TS`类型体操
+用 axios 封装练习请求/响应泛型，不是「类型体操」专题。
 <!-- truncate -->
 ## 前言
 
-本文借助`axios`请求封装作为实战用例
-涉及内容: `TypeScript`、`axios`、`React`
+本文借助 `axios` 请求封装作为实战用例，涉及 `TypeScript`、`axios`、`React`。
 
 ## 核心代码
 
@@ -27,23 +26,24 @@ const Axios = axios.create({
     baseURL
 });
 
+// 登录/注册等无需带 token 的接口（不要把管理端路径误放进白名单）
+const noAuthUrls = ['/user/login', '/user/register'];
+
 Axios.interceptors.request.use(
     config => {
-        if (config.url === '/user/admin') {
+        if (noAuthUrls.includes(config.url || '')) {
             return config;
-        } else {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                toast.warn('请先登录', { progress: 1 });
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 2500);
-                return Promise.reject('请先登录');
-            } else {
-                config.headers.Authorization = token;
-                return config;
-            }
         }
+        const token = localStorage.getItem('token');
+        if (!token) {
+            toast.warn('请先登录', { progress: 1 });
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2500);
+            return Promise.reject(new Error('请先登录'));
+        }
+        config.headers.Authorization = token;
+        return config;
     },
     error => {
         toast.error(error);
@@ -55,10 +55,10 @@ Axios.interceptors.response.use(
         const { data } = response;
         if (data.success) {
             return response;
-        } else {
-            toast.error(data.message);
-            return Promise.reject(data.message);
         }
+        toast.error(data.message);
+        // reject Error，方便下游读 e.message
+        return Promise.reject(new Error(data.message));
     },
     error => {
         console.log(error);
@@ -74,7 +74,7 @@ export default request;
 
 ```
 
-## axios类型刨析
+## axios 类型剖析
 
 `axios`涉及的`api`太多,我就聚焦在`核心代码`中涉及到的
 
@@ -150,10 +150,9 @@ interface IData<T = any> {
         const { data } = response;
         if (data.success) {
             return response;
-        } else {
-            toast.error(data.message);
-            return Promise.reject(data.message);
         }
+        toast.error(data.message);
+        return Promise.reject(new Error(data.message));
     },
     error => {
         console.log(error);
@@ -162,9 +161,8 @@ interface IData<T = any> {
     }
 ```
 
-上面我们提到了`AxiosResponse`接受两个泛型,分别表示`data`和`config`的类型,默认它们为`any`类型。
-我们这里仅对`data`进行约束,所以我们将`IData`作为`AxiosResponse`的第一个泛型传入。
-`IData`是服务端响应数据的结构,它也接受一个泛型,用来约束`data`字段的数据结构。
+上面我们提到了 `AxiosResponse` 接受两个泛型，分别表示 `data` 和 `config` 的类型，默认是 `any`。
+这里只约束 `data`，把 `IData` 作为第一个泛型传入。`IData` 也是泛型，用来约束业务 `data` 字段的结构。
 
 ### 导出封装后的请求方法⭐⭐⭐
 
@@ -198,8 +196,17 @@ console.log(response.data) //null
 
 **要注意我们在导出的`request`方法是做了一层数据解构,只返回了`AxiosResponse`中的`data`字段**,也就是实际上后续的请求方法获取到的数据是`data`字段的数据,`Response`和`response`并不一样。大部分情况我们都是直接使用服务端返回给我们的数据结构去完成业务逻辑。而解构后的`response`就是服务端返回的数据。
 
-*服务端返回的数据*
+*服务端返回的数据（Express 等）*
 
 ```typescript
- response.json({success: true, message: '商品添加成功'});
+res.json({ success: true, message: '商品添加成功' });
+```
+
+```mermaid
+flowchart LR
+    Call[request T config] --> Axios[axios 实例]
+    Axios --> ReqI[请求拦截: token / 白名单]
+    ReqI --> Net[网络]
+    Net --> ResI[响应拦截: IData]
+    ResI --> Data[返回 IData T]
 ```

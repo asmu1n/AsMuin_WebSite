@@ -7,57 +7,51 @@ tags:
   - CSS
 ---
 
+运行时切换主题色：CSS 变量 + 关键色派生。
+
+<!-- truncate -->
+
 ## 前言
 
-出于个性化或者是商业上的考虑，很多项目在 UI 设计之初就会考虑多种配色方案，有时候是为了配合节假日切换不同的配色方案，有时候是为了迎合不同的用户群体允许用户自定义配置，还有种情况就是迅速换皮套壳出售相关的项目。
+多套配色（节日皮肤、品牌换皮、用户自定义）往往不能只靠「浅色/深色」两套写死的编译结果。更灵活的做法是：
 
-无论出于何种考虑，自定义主题色都是一个很好的选择。不同于明确的 `浅色/深色模式`，自定义主题需要保持足够的灵活性，想要很好地实现这一点，其实就没办法使用固定的配置在编译时完成这一切。
+1. 样式里用 **CSS 变量**，不写死具体色值  
+2. 运行时用 JS 改 `document.documentElement` 上的变量  
+3. 若大量颜色由主色推导，可用派生算法减少手写 token  
 
->其实大部分主流方案都是通过一开始就明确规划相应的 `CSS` 变量，然后在编译时通过不同的配置文件来切换不同的变量值，在`CSS`样式中访问相应的`CSS`变量取代`硬编码`固定值从而实现不同的主题色。在若主题色中有相当多的变量，我们相应需要自定义的 `CSS` 变量也会增多。但如果你的主题色配色方案中，有相当多的颜色是通过某一个关键色推导而来，比如不同比例的混入白色或者黑色，那么我们也可以考虑不全部采用`硬编码`的方式定义 `CSS` 变量，而是通过计算派生值的方式来获取其他值。
+编译期工具（Sass / Less / PostCSS）仍然有用：它们适合写出「引用 `var(--x)` 的结构」。无法单独满足的是：**用户随时改主色时，编译期写死的派生结果跟不上**。
 
 ## 实践
 
-首先我们先假设主题配色方案中有三个关键色
+假设有三个关键色：
 
 ```css
 :root {
-    --primary-color:rgb(179, 30, 30);
+    --primary-color: rgb(179, 30, 30);
     --secondary-color: #00ff00;
     --accent-color: #0000ff;
 }
 ```
 
-假设我们在项目中，对于 `primary-color`有多个变种值，比如浅一点又或者深一点，如果采用一一定义的方式，那么还要继续定义另外的`CSS`变量
+主色若有多个深浅档，可以手写：
 
 ```css
 :root {
     --primary-color-light: #ff0000;
-    --primary-color-dark:rgb(112, 4, 4);
+    --primary-color-dark: rgb(112, 4, 4);
 }
 ```
 
- 其实这样也没啥问题，可是一旦变种色多达十几个，那么定义的`CSS`变量也会增多，我们还需要考虑为`CSS`变量注入值时，值是否符合我们一开始设定混入的色值比例。
-
-而这个情况下我们就可以考虑最近新增的`color-mix()`函数，
+档位一多就难维护。可用 `color-mix()` 派生：
 
 ```css
 :root {
-    --primary-color-light: color-mix(in srgb, var(--primary-color) 90%, #FFF);
+    --primary-color-light: color-mix(in srgb, var(--primary-color) 90%, #fff);
     --primary-color-dark: color-mix(in srgb, var(--primary-color) 90%, #000);
 }
 ```
 
- 让计算机自己去计算派生值，而不是我们自己去计算然后定义注入其中。当然，这会损失一些灵活性，毕竟我们没办法完全掌握所有`CSS`变量的值了。
-
-**另外`color-mix()`目前还有一个绕不开的问题--- `兼容性`**
-
-![color-mix(can i use)](https://cloud.asmuin.top/woodBlog/color-mix(can%20i%20use).png)
-
-`90.82%`的支持率属实算不上高，想要推广使用还是需要考虑其他方案。
-
-如果不采用`color-mix()`，那么剩下就是 `PostCSS` 还有`Sass` 、`Less` 以及 `JS`。但我们之前有提到，考虑其灵活性，我们没办法在编译时就确定其值，那么在编译时处理`CSS`样式的方案就无法满足我们的需求，即`PostCSS` 、`Sass` 、`Less` 都无法满足我们的需求。
-
-那么剩下的就是`JS`了，
+**兼容性：** `color-mix` 支持率在提升，但仍要以目标用户浏览器为准（查 [Can I Use: color-mix()](https://caniuse.com/mdn-css_types_color_color-mix)）。不满足时，用 JS 派生后写入变量更稳。
 
 ```js
 import { colord, extend } from 'colord';
@@ -65,21 +59,60 @@ import mixPlugin from 'colord/plugins/mix';
 extend([mixPlugin]);
 
 function generateThemeColors(baseColor) {
-  const colors = {};
-  const base = colord(baseColor);
-  colors['primary-50'] = base.mix('#FFFFFF', 0.95).toHex();
-  colors['primary-100'] = base.mix('#FFFFFF', 0.9).toHex();
-  colors['primary-200'] = base.mix('#FFFFFF', 0.75).toHex();
-  colors['primary-300'] = base.mix('#FFFFFF', 0.5).toHex();
-  colors['primary-400'] = base.mix('#FFFFFF', 0.25).toHex();
-  colors['primary-500'] = base.toHex(); // 主色本身
-  colors['primary-600'] = base.mix('#000000', 0.1).toHex();
-  colors['primary-700'] = base.mix('#000000', 0.25).toHex();
-  colors['primary-800'] = base.mix('#000000', 0.5).toHex();
-  colors['primary-900'] = base.mix('#000000', 0.75).toHex();
-  colors['primary-950'] = base.mix('#000000', 0.9).toHex();
-  return colors;
+    const base = colord(baseColor);
+    return {
+        'primary-50': base.mix('#FFFFFF', 0.95).toHex(),
+        'primary-100': base.mix('#FFFFFF', 0.9).toHex(),
+        'primary-200': base.mix('#FFFFFF', 0.75).toHex(),
+        'primary-300': base.mix('#FFFFFF', 0.5).toHex(),
+        'primary-400': base.mix('#FFFFFF', 0.25).toHex(),
+        'primary-500': base.toHex(),
+        'primary-600': base.mix('#000000', 0.1).toHex(),
+        'primary-700': base.mix('#000000', 0.25).toHex(),
+        'primary-800': base.mix('#000000', 0.5).toHex(),
+        'primary-900': base.mix('#000000', 0.75).toHex(),
+        'primary-950': base.mix('#000000', 0.9).toHex()
+    };
+}
+
+/** 把派生结果注入 :root，样式侧继续用 var(--primary-500) 等 */
+function applyThemeColors(baseColor) {
+    const colors = generateThemeColors(baseColor);
+    const root = document.documentElement;
+    Object.entries(colors).forEach(([key, value]) => {
+        root.style.setProperty(`--${key}`, value);
+    });
+}
+
+// 用户选色 / 读 localStorage 后
+// applyThemeColors('#b31e1e');
+```
+
+业务 CSS 只认变量：
+
+```css
+.button-primary {
+    background: var(--primary-500);
+    border-color: var(--primary-600);
+}
+.button-primary:hover {
+    background: var(--primary-400);
 }
 ```
 
-这样的处理方式就是暴力了点
+```mermaid
+flowchart LR
+    U[用户选择主色] --> JS[generateThemeColors]
+    JS --> Root[写入 CSS 变量到 :root]
+    Root --> CSS[组件样式 var --primary-*]
+```
+
+## 小结
+
+| 方案 | 优点 | 局限 |
+| ---- | ---- | ---- |
+| 编译期多套主题文件 | 简单、无运行时成本 | 不适合任意用户色 |
+| `color-mix` + CSS 变量 | 声明式派生 | 兼容性、调试手感 |
+| JS 派生 + `setProperty` | 灵活、可持久化 | 首屏要避免闪烁（可内联关键脚本） |
+
+**推荐组合：** 样式结构用变量写好（构建工具照常参与）；运行时只改变量值，而不是整表重编译 CSS。

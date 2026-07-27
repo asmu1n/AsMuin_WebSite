@@ -23,8 +23,7 @@ sidebar_position: 1
 
 #### Hash实现页面跳转
 
-通过`location.hash`属性可以更改页面的Hash,并且不会刷新页面值改变`URL`路径,当`Hash`改变的时候,会触发一个`hashchange`事件，可以通过监听`hashchange`事件去变更页面视图的内容。
-同时，当页面1改变的时候，也会向浏览器的访问历史添加一个记录，所以也可能通过`history.go()`去控制页面访问历史
+通过 `location.hash` 可以更改页面的 Hash，并且**不会刷新页面、只改变 URL**。Hash 改变时触发 `hashchange`，可据此切换视图。Hash 变化一般也会进入浏览历史，因此可用 `history.go()` 等控制前进后退。
 
 ## History模式
 
@@ -37,10 +36,10 @@ sidebar_position: 1
   history.pushState() //添加新的状态到历史状态栈
   history.replaceState() //用新的状态代替当前状态  
 /**
-@description: ...
-@param: state  合法的JS对象,可以用在pushState事件中
-@param: title 现在大多数浏览器忽略这个参数,可以用null代替
-@param: url 任意有效的URL，用于更新浏览器的地址栏
+@description: pushState / replaceState 是 History API 方法（不是“pushState 事件”）
+@param: state  合法的 JS 对象，可在 popstate 时通过 history.state 取回
+@param: title  现在大多数浏览器忽略，可用 null
+@param: url    有效 URL，用于更新地址栏
 */
 
   history.state //返回当前的状态
@@ -53,13 +52,26 @@ sidebar_position: 1
 
 ## 两种模式的取舍
 
-`Hash`模式兼容性更好、而且不需要在服务端进行配置，但是浏览器地址会带有`#`号，看起来可能不美观。并且页面锚点功能失效(不怎么遇到需要锚点功能)。对`SEO`不优化。
-`History`模式相比较兼容性较差，但是如今这点差异可忽略。浏览器地址栏看起来更规整，更符合我们使用多页应用的习惯并且对`SEO`的适配很好。但是需要在服务端中进行配置。
-总结: 一般来说,不需要`SEO`的页面用`Hash`更省心。
- 结合实际来说:
+```mermaid
+flowchart TB
+    subgraph Hash模式
+        H1[浏览器访问 /#/about] --> H2[请求仍打到同一 HTML]
+        H2 --> H3[前端读 hash 渲染]
+    end
+    subgraph History模式
+        Y1[浏览器访问 /about] --> Y2{服务端有该路径资源?}
+        Y2 -->|无 fallback| Y3[404]
+        Y2 -->|fallback 到 index.html| Y4[前端读 path 渲染]
+    end
+```
 
-- TO B 诸如后台管理系统使用`Hash`较多
-- TO C 保证使用量和搜索引擎排序，`History`更受欢迎。
+| | Hash | History |
+| -- | ---- | ------- |
+| 地址 | 带 `#` | 更接近多页路径 |
+| 服务端 | 几乎不用特殊配置 | 刷新/直达需 fallback 到 `index.html` |
+| SEO | 对传统爬虫不友好 | **URL 更友好，但纯 CSR 本身 SEO 仍然有限**，通常还要 SSR/预渲染 |
+
+总结：不关心 SEO 的后台类应用用 Hash 往往更省心；To C 公网站点更常选 History，并配合 SSR/预渲染与服务端 fallback。
 
 ## 补充
 

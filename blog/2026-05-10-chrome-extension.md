@@ -8,6 +8,10 @@ tags:
   - Infrastructure
 ---
 
+MV3 下用 `world: "MAIN"` 劫持原生 API，并在无 Background 依赖时做跨 World 通信。
+
+<!-- truncate -->
+
 在 Web 调试与自动化测试场景中，扩展程序经常需要对目标页面的原生 API（如 `navigator.geolocation`、`navigator.userAgent`）进行劫持与 Mock。
 
 在 Chrome Manifest V3 (MV3) 标准下，由于严格的执行上下文隔离（`World Isolation`）机制，实现高可靠的原生 API 劫持面临一定的架构挑战。本文将结合开源项目 `Anywhere Debugger` 的实践，探讨如何利用 MV3 的现代化特性，构建一套**无 Background 依赖、纯原生、时序绝对可靠**的 API 劫持与跨环境通信架构。
@@ -66,7 +70,7 @@ Chrome 111+ 在 MV3 的 `content_scripts` 配置中正式引入了 `world` 字�
 
 ## 三、 跨环境数据通信机制
 
-由于 MAIN 与 ISOLATED 处于物理隔离的 JS 虚拟机上下文中，两者协同工作必须依赖严谨的 IPC（进程间通信）机制。本架构包含两条核心数据链路。
+由于 MAIN 与 ISOLATED 处于隔离的 JS 执行上下文（World）中，两者协同必须依赖跨上下文通信。严格说不一定是“进程间 IPC”，但扩展文档里常借 IPC 这个词指跨边界消息。本架构包含两条核心链路。
 
 ### 链路 A：页面加载初始化（状态同步）
 
@@ -76,9 +80,8 @@ Chrome 111+ 在 MV3 的 `content_scripts` 配置中正式引入了 `world` 字�
 2. **ISOLATED 侧读取**：`mock_bridge.js` 异步调用 `chrome.storage.local.get` 获取持久化的 Mock 状态。
 3. **跨界推送**：`mock_bridge.js` 通过 `window.postMessage` 将配置推送至 MAIN 环境，完成状态覆写。
 
-**技术细节：为何弃用 `CustomEvent`？**
-在跨 World 通信时，`window.dispatchEvent(new CustomEvent(...))` 是无效的。因为 ISOLATED World 中的 `window` 对象实际上是一个代理对象（Proxy）。向该代理对象派发事件，无法触发 MAIN World 中真实 `window` 对象上的监听器。
-而 `window.postMessage` 触发的是浏览器底层的消息路由机制，最终会在真实的 Window 对象上派发 `MessageEvent`，这是跨 World 通信的唯一标准路径。
+**技术细节：为何优先 `postMessage`，而不是 `CustomEvent`？**
+两个 World **共享 DOM**，在某些节点上用 `CustomEvent` 跨 World 通信并非绝对不可能，但 `window` 身份不同、代理行为与页面脚本劫持都会让 `CustomEvent` 非常容易踩坑。`window.postMessage` 走浏览器消息通道，语义清晰，是跨 World 通信更稳妥的默认选择（仍建议加来源校验、token 与命令白名单）。
 
 ### 链路 B：指令控制通道（三级接力）
 

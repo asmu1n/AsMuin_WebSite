@@ -109,12 +109,12 @@ vi.mock(import('./path/to/module.js'), async (importOriginal) => {
 
 > 官方原文：*与 `vi.mock` 相同，但它不会被移动到文件顶部，因此我们可以引用全局文件作用域中的变量。模块的下一个 `dynamic import` 将被模拟*
 
-| 特性 | mock | doMock |
+| 特性 | `vi.mock` | `vi.doMock` |
 |---|---|---|
-| 默认作用范围  | 全局 | 局部 |
-| 异步模块支持  | 支持  |  需要手动管理 |
-| 适用场景 | 当你需要在整个测试文件中模拟模块时 | 当你需要在测试文件中选择性地模拟模块时 |
-| 依赖管理 |自动处理  |需要手动干预，如使用 `vi.resetModules()`  |
+| 提升到文件顶 | 是（hoist） | 否，可写在用例里 |
+| 作用对象 | 模块加载结果（不是「函数局部变量」） | 同样 mock 模块；配合动态 `import` 生效 |
+| 适用场景 | 整文件默认替换某模块 | 不同用例要换不同 mock 实现 |
+| 依赖管理 | 一般开箱即用 | 常需 `vi.resetModules()` + 动态 import |
 
 ```typescript
 // index.js
