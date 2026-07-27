@@ -8,6 +8,7 @@ slug: /
 
 最近新增：
 
+- [Go 互斥锁与短临界区：共享指针怎么读才安全](/sawdust/go-mutex-short-critical-section)
 - [Compose 编排 vs 生产镜像部署：环境变量怎么注入](/sawdust/compose-vs-prod-image-env)
 - [什么时候要开数据库事务](/sawdust/when-to-use-db-transactions)
 - [前端渲染架构简记](/sawdust/frontend-rendering-architectures)
