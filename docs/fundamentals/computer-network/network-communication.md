@@ -13,16 +13,34 @@ sidebar_position: 2
 6. 关闭TCP连接
 *注意浏览器在执行后续步骤之前会对URL进行解析，如果输入的字符串不符合规范则会使用搜索引擎对字符串进行搜索*
 
-## 第一步DNS解析
+## 第一步 DNS 解析（简化）
 
-1. 浏览器依次在浏览器缓存、系统缓存、路由器缓存、运营商DNS缓存中查找是否有该域名的IP地址。
-2. 如果缓存中没有，则向本地DNS服务器发送请求，请求域名对应的IP地址。
-3. 如果本地DNS服务器缓存中没有，则向根DNS服务器发送请求，请求`www.example.com`的IP地址。
-4. 如果根DNS服务器缓存中没有，则向com DNS服务器发送请求，请求`www.example.com`的IP地址。
-5. 如果com DNS服务器缓存中没有，则向example.com DNS服务器发送请求，请求`www.example.com`的IP地址。
-6. 如果example.com DNS服务器缓存中没有，则向域名服务器发送请求，请求`www.example.com`的IP地址。
-7. 域名服务器收到请求后，会返回`www.example.com`的IP地址，并将其缓存到本地DNS服务器中。
-8. 本地DNS服务器将`www.example.com`的IP地址返回给浏览器。
+典型路径是：**浏览器/系统缓存 → 本地递归解析器 → 迭代查询权威链**。
+
+1. 浏览器、OS 等本地缓存中查找。
+2. 未命中则问**本地 DNS（递归解析器）**。
+3. 递归解析器若无缓存，则向**根**查询；根通常返回 **TLD 的 NS 委派**（不是直接给最终 A 记录）。
+4. 再问 **`.com` 等 TLD**，得到 `example.com` 权威 NS。
+5. 再问 **权威服务器**，拿到 `www.example.com` 的 A/AAAA 等记录。
+6. 解析器缓存结果后返回给浏览器。
+
+```mermaid
+sequenceDiagram
+    participant B as 浏览器
+    participant R as 递归解析器
+    participant Root as 根
+    participant TLD as TLD
+    participant Auth as 权威 NS
+
+    B->>R: 查询 www.example.com
+    R->>Root: 迭代查询
+    Root-->>R: 委派 .com NS
+    R->>TLD: 查询
+    TLD-->>R: 委派 example.com NS
+    R->>Auth: 查询
+    Auth-->>R: A/AAAA 记录
+    R-->>B: IP
+```
 
 ## 第二步TCP连接(三次握手)
 
@@ -46,7 +64,7 @@ sidebar_position: 2
 2. 浏览器解析CSS，并生成CSSOM树。
 3. 将DOM树和CSSOM树结合，生成渲染树。
 4. 根据渲染树开始渲染页面。
-**这里没有提到JS的执行过程，因为JS是渲染页面的最后一步，如果JS文件较大，会阻塞渲染，影响用户体验。在现代前端开发中，Script标签往往带有defer或async属性，defer可以让JS在页面完成HTML解析后执行。 async只能做到异步加载，加载完成后立即执行JS，会影响页面渲染。**
+**关于 JS：** 脚本的下载与执行会穿插在解析过程中。无 `async`/`defer` 的脚本可能**阻塞 HTML 解析**；`defer` 会在文档解析完成后、按顺序执行；`async` 加载完就执行，可能打断解析。JS 并不是固定的“渲染最后一步”，而是与解析、样式计算、布局、绘制交织，并可能触发回流/重绘。
 
 ## 关闭TCP连接(四次挥手)
 

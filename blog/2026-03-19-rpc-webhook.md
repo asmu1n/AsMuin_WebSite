@@ -7,6 +7,9 @@ tags:
   - Network
 ---
 
+RPC 像打电话，Webhook 像回执短信：两种跨系统协作方式的分工笔记。
+
+<!-- truncate -->
 
 ## 一、 基础概念：主动出击 vs 坐等通知
 
@@ -32,15 +35,30 @@ Webhook 通常被称为“反向 API”或“HTTP 回调”。它的核心设计
 
 ## 二、 两者在应用架构设计中承担的角色
 
-虽然通信方向（主动 vs 被动）和底层协议截然相反，但在很多业务场景下，RPC 和 Webhook 实际上是**同一业务需求的不同解法**。它们的核心共性在于：**都是让两台计算机互相触发业务逻辑并传递数据。**
+虽然通信方向（主动 vs 被动）和常见部署位置不同，但在很多业务场景下，RPC 和 Webhook 是**同一需求的不同解法**。共性在于：让两台计算机互相触发业务逻辑并传递数据。
+
+```mermaid
+sequenceDiagram
+    participant A as 系统 A
+    participant B as 系统 B
+
+    Note over A,B: 同步 RPC 风格
+    A->>B: 调用 getUser(id)
+    B-->>A: 立即返回结果
+
+    Note over A,B: Webhook 回调
+    A->>B: 提交任务 + callback URL
+    B-->>A: 202 Accepted
+    B->>A: 完成后 POST 结果到 Webhook
+```
 
 ### 场景 1：耗时任务的结果获取（异步处理）
 
 假设你的系统 A 需要调用系统 B 进行“4K 视频转码”或“AI 图像生成”，这个过程需要 5 分钟。
 
-* **RPC 的解法（轮询 Polling）**：系统 A 通过 RPC 提交任务拿到 `TaskID`，然后写个定时器，每隔 10 秒发起一次 RPC 调用 `checkStatus(TaskID)`。这会产生大量无效网络请求，浪费资源。
-* **Webhook 的解法（事件回调）**：系统 A 提交任务时附带一个自己的 Webhook URL。然后 A 就可以去干别的事了。5 分钟后，系统 B 转码完成，主动向这个 URL 发送 POST 请求推送结果。
-* **结论**：在耗时异步任务中，Webhook 的事件驱动模型更加优雅、零浪费。
+* **若只用同步请求-响应式 RPC**：系统 A 提交任务拿到 `TaskID` 后，容易退化成定时 `checkStatus(TaskID)` 轮询，产生大量无效请求。注意：**RPC 本身也可以异步**——消息队列、回调、gRPC streaming 等都能推送结果，并不等于“只能轮询”。
+* **Webhook 的解法（HTTP 回调）**：系统 A 提交任务时附带自己的 Webhook URL；完成后 B 主动 POST 结果。跨组织、公网场景特别常见。
+* **结论**：跨系统、跨信任边界的异步结果通知，Webhook 往往更省事；内网若已有事件总线/流式 RPC，不必强行上 Webhook。
 
 ### 场景 2：跨系统的状态同步与事件通知
 
@@ -55,7 +73,7 @@ Webhook 通常被称为“反向 API”或“HTTP 回调”。它的核心设计
 
 过去，我们总认为 RPC 是后端微服务（Java/Go/C++）的专利，前端和后端只能通过 RESTful API (HTTP/JSON) 或 GraphQL 交互。
 
-但随着 **Next.js、Nuxt.js** 等全栈框架的崛起，以及 **React Server Components (RSC)** 和 **Server Actions** 的出现，**RPC 的设计思想正在深刻地重塑前后端交互范式。**
+但随着 **Next.js、Nuxt.js** 等全栈框架的崛起，以及 **React Server Components (RSC)** 和 **Server Actions** 的出现，**RPC 风格的 DX（像调本地函数一样调服务端）** 正在补充甚至替代一部分手写 REST 胶水代码。底层传输往往仍是 HTTP，不必理解成“RPC 全面取代 REST”。
 
 ### 1. 避免常规 HTTP 请求带来的繁琐的 API 胶水代码
 

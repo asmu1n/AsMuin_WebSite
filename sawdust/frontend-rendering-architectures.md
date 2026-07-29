@@ -130,7 +130,7 @@ RSC 虽然也有服务端介入渲染，但核心不是“把整页 SSR 一遍�
 
 要注意：
 
-RSC 的核心是在优先服务端渲染的情况下，允许部分组件在交由客户端渲染。
+RSC 的核心是 **组件执行与产物边界**：能放在服务端的组件就在服务端执行（其代码默认不进客户端包）；只有真正需要交互的部分，才再标成 Client Component。它常与 SSR / Streaming **组合使用**，但**不等于**传统“整页 SSR 再整页水合”。
 
 ### 6. Islands
 
@@ -199,15 +199,40 @@ Edge Rendering 的重点不是页面生成逻辑本身，而是：
 
 ## 一张表先看区别
 
-| 模式 | 页面主要在哪生成 | JS 负担 | SEO | 更适合什么 |
-|---|---|---|---|---|
-| CSR | 客户端 | 高 | 一般 | 后台系统、强交互应用 |
-| SSR | 服务端按请求生成 | 中到高 | 好 | SEO 页面、动态内容页 |
-| SSG | 构建时生成 | 低 | 好 | 博客、文档、静态内容站 |
-| ISR | 以静态为主，后台再生 | 低到中 | 好 | 商品页、CMS 内容站 |
-| RSC / Server-First | 服务端优先，客户端只保留交互边界 | 更低 | 好 | 现代 React 混合应用 |
-| Islands | 大部分静态，局部激活 | 低 | 好 | 内容站、零散交互页面 |
-| Resumability | 服务端序列化后客户端恢复 | 很低 | 好 | 对启动成本极度敏感的场景 |
+| 模式 | 页面主要在哪生成 | JS 负担 | SEO | 更适合什么 | 代表栈（举例） |
+|---|---|---|---|---|---|
+| CSR | 客户端 | 高 | 纯 CSR 且无预渲染时一般 | 后台系统、强交互应用 | CRA / Vite SPA |
+| SSR | 服务端按请求生成 HTML；交互仍常需水合 | 中到高 | 好 | SEO 页面、动态内容页 | Next pages SSR 等 |
+| SSG | 构建时生成 | 低 | 好 | 博客、文档、静态内容站 | 多数文档站 |
+| ISR | 以静态为主，后台再生 | 低到中 | 好 | 商品页、CMS 内容站 | Next ISR |
+| RSC / Server-First | 服务端优先，客户端只保留交互边界 | 更低 | 好 | 现代 React 混合应用 | Next App Router |
+| Islands | 大部分静态，局部激活 | 低 | 好 | 内容站、零散交互页面 | Astro / Fresh |
+| Resumability | 服务端序列化后客户端恢复 | 很低 | 好 | 对启动成本极度敏感的场景 | Qwik |
+
+```mermaid
+flowchart TB
+    subgraph Modes["渲染模式"]
+        CSR
+        SSR
+        SSG
+        ISR
+        RSC
+        Islands
+        Resumability
+    end
+    subgraph Transport["传输策略"]
+        Streaming[Streaming SSR]
+    end
+    subgraph Runtime["运行位置"]
+        Edge[Edge Rendering]
+        Origin[中心源站]
+    end
+    SSR --> Streaming
+    RSC --> Streaming
+    SSR --> Edge
+    RSC --> Edge
+    SSR --> Origin
+```
 
 ## 怎么选
 
