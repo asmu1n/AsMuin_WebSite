@@ -1,0 +1,46 @@
+# Netlify 缓存头（Cloudflare 灰云时，真正执行缓存的是 Netlify + 浏览器）
+#
+# 策略：
+# - HTML / 页面 / 无 hash 静态：24h（86400s）
+# - /assets/*（Docusaurus 带 content hash）：1y + immutable
+# - sitemap.xml：1h（方便检索尽快更新）
+#
+# 说明：
+# - max-age 会作用于浏览器。Netlify 部署后通常会刷新其边缘缓存，
+#   但用户本地仍可能在最多约 24h 内直接复用旧 HTML（除非强刷或过期）。
+# - 构建命令若已在 Netlify UI 配置，这里不重复写 [build]，避免覆盖。
+
+# 默认：页面与未单独匹配的路径 —— 24 小时
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+# Docusaurus 构建产物（文件名含 hash）—— 长期缓存
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# 明确 HTML 后缀
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+# 站点图片等无 hash 静态
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+[[headers]]
+  for = "/favicon.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+# sitemap 稍短
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=3600, must-revalidate"
