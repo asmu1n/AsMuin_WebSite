@@ -62,4 +62,5 @@ sidebar_position: 1
 
 - [浏览器访问资源过程](./network-communication)  
 - [TCP / UDP](./common-network-protocols)  
-- [CDN 与代理](./cdn-proxy)
+- [CDN 与代理](./cdn-proxy)  
+- [CDN 详解（前端视角）](./cdn)
