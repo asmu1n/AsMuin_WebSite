@@ -1,7 +1,7 @@
 AsMuin:
     name: Jason Rong
     title: 前端糕手
-    image_url: https://cloud.asmuin.top/author.JPG
+    image_url: https://bucket.asmu1n.com/author.JPG
     page: true
     socials:
-        github: 'https://github.com/AsMuin'
+        github: "https://github.com/AsMuin"

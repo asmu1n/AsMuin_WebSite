@@ -1,0 +1,23 @@
+# 默认：页面与未单独匹配的路径 —— 24 小时
+/*
+  Cache-Control: public, max-age=86400, must-revalidate
+
+# Docusaurus 构建产物（文件名含 hash）—— 长期缓存
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 明确 HTML 后缀
+/*.html
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# 站点图片等无 hash 静态
+/img/*
+  Cache-Control: public, max-age=86400, must-revalidate
+
+# favicon
+/favicon.ico
+  Cache-Control: public, max-age=86400, must-revalidate
+
+# sitemap 稍短
+/sitemap.xml
+  Cache-Control: public, max-age=3600, must-revalidate
