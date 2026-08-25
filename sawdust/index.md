@@ -8,6 +8,8 @@ slug: /
 
 最近新增：
 
+- [SSE 随记：帧封装 · 事件订阅 · Fan-out](/sawdust/sse-frame-subscribe-fanout)
+- [YAML 与 .env：配置怎么拆、Docker 怎么注入](/sawdust/yaml-vs-env-docker)
 - [Go 互斥锁与短临界区：共享指针怎么读才安全](/sawdust/go-mutex-short-critical-section)
 - [Compose 编排 vs 生产镜像部署：环境变量怎么注入](/sawdust/compose-vs-prod-image-env)
 - [什么时候要开数据库事务](/sawdust/when-to-use-db-transactions)
