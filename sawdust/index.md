@@ -8,6 +8,8 @@ slug: /
 
 最近新增：
 
+- [人与 Agent 协作：保持认知同步的工作流](/sawdust/person_agent)
+- [Monorepo 与 Multirepo：选型与多端工程实践](/sawdust/monorepo_multirepo)
 - [SSE 随记：帧封装 · 事件订阅 · Fan-out](/sawdust/sse-frame-subscribe-fanout)
 - [YAML 与 .env：配置怎么拆、Docker 怎么注入](/sawdust/yaml-vs-env-docker)
 - [Go 互斥锁与短临界区：共享指针怎么读才安全](/sawdust/go-mutex-short-critical-section)
